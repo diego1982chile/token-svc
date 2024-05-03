@@ -1,4 +1,4 @@
 run_tests:
-    image: openjdk-21:1.18
+    image: openjdk:21-jdk
     script:
         - mvn clean verify

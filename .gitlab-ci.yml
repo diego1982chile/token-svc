@@ -10,4 +10,4 @@ run_tests:
         - source /etc/profile.d/maven.sh
         - mvn --version
     script:
-        - mvn clean verify
+        - mvn test

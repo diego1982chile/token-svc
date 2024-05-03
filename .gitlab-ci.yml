@@ -1,4 +1,6 @@
 run_tests:
     image: openjdk:21-jdk
+    before_script: 
+        - yum install maven 3.9.6
     script:
         - mvn clean verify

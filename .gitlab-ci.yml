@@ -1,4 +1,4 @@
 run_tests:
-    image: maven:3.8.3-openjdk-21    
+    image: openjdk-21:1.18
     script:
         - mvn clean verify

@@ -1,6 +1,8 @@
 run_tests:
     image: openjdk:21-jdk
     before_script: 
-        - yum install maven 3.9.6
+        - wget https://mirrors.estointernet.in/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+        - tar -xvf apache-maven-3.6.3-bin.tar.gz
+        - mv apache-maven-3.6.3 /opt/
     script:
         - mvn clean verify

@@ -1,4 +1,4 @@
-package cl.dsoto.security;
+package cl.dsoto.resources;
 
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
@@ -13,7 +13,6 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.h2.H2DatabaseTestResource;
 import jakarta.inject.Inject;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,7 +22,7 @@ import java.util.List;
 
 @QuarkusTest
 @QuarkusTestResource(H2DatabaseTestResource.class)
-public class JpaSecurityRealmTest {
+public class UserResourceTest {
 
     @Inject
     private UserRepository userRepository;
@@ -32,7 +31,7 @@ public class JpaSecurityRealmTest {
     private RoleRepository roleRepository;
 
     @BeforeEach
-    void init() {
+    public void init() {
         Role adminRole = Role.builder().rolename("ADMIN").build();
         Role userRole = Role.builder().rolename("USER").build();
 
@@ -62,7 +61,7 @@ public class JpaSecurityRealmTest {
     */
 
     @Test
-    void shouldNotAccessAdminWhenAnonymous() {
+    public void shouldNotAccessAdminWhenAnonymous() {
         get("/users")
                 .then()
                 .statusCode(HttpStatus.SC_UNAUTHORIZED);
@@ -70,8 +69,7 @@ public class JpaSecurityRealmTest {
     }
 
     @Test
-    void
-    shouldNotAccessUserWhenAdminAuthenticated() {
+    public void shouldNotAccessUserWhenAdminAuthenticated() {
         given()
                 .auth().preemptive().basic("user", "user")
                 .when()
@@ -81,7 +79,7 @@ public class JpaSecurityRealmTest {
     }
 
     @Test
-    void shouldAccessUserAndGetIdentityWhenUserAuthenticated() {
+    public void shouldAccessUserAndGetIdentityWhenUserAuthenticated() {
         given()
                 .auth().preemptive().basic("admin", "admin")
                 .when()

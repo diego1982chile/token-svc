@@ -1,3 +1,7 @@
+variables:
+    IMAGE_NAME: dsoto/token-svc
+    IMAGE_TAG: quarkus-app-1.0   
+
 run_tests:
     image: openjdk:21-jdk
     before_script: 
@@ -11,3 +15,16 @@ run_tests:
         - mvn --version
     script:
         - mvn test
+
+build_image:      
+    image: docker:26.1.1
+    services:
+        - docker:26.1.1-dind
+    variables:
+        DOCKER_TLS_CERT_DIR: "certs/"
+    before_script:
+        - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD
+    script:
+        - docker build -f src/main/docker/Dockerfile.jvm -t $IMAGE_NAME:$IMAGE_TAG .
+        - docker push $IMAGE_NAME:$IMAGE_TAG
+        

@@ -157,8 +157,8 @@
         <version>${surefire-plugin.version}</version>
         <executions>
           <execution>
+            <id>quarkus-test</id>
             <goals>
-              <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
           </execution>

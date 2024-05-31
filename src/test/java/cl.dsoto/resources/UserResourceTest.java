@@ -2,6 +2,7 @@ package cl.dsoto.resources;
 
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
+import static io.restassured.authentication.FormAuthConfig.formAuthConfig;
 import static org.hamcrest.core.Is.is;
 
 import cl.dsoto.entities.Role;
@@ -11,6 +12,7 @@ import cl.dsoto.repositories.UserRepository;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.h2.H2DatabaseTestResource;
+import io.restassured.authentication.FormAuthConfig;
 import jakarta.inject.Inject;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,13 +67,13 @@ public class UserResourceTest {
         get("/users")
                 .then()
                 .statusCode(HttpStatus.SC_UNAUTHORIZED);
-
     }
 
     @Test
     public void shouldNotAccessUserWhenAdminAuthenticated() {
         given()
-                .auth().preemptive().basic("user", "user")
+                //.auth().preemptive().basic("admin", "admin")
+                .auth().form("user", "user", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
                 .when()
                 .get("/users/me")
                 .then()
@@ -81,7 +83,8 @@ public class UserResourceTest {
     @Test
     public void shouldAccessUserAndGetIdentityWhenUserAuthenticated() {
         given()
-                .auth().preemptive().basic("admin", "admin")
+                //.auth().preemptive().basic("admin", "admin")
+                .auth().form("admin", "admin", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
                 .when()
                 .get("/users/me")
                 .then()

@@ -2,7 +2,7 @@ package cl.dsoto.resources;
 
 
 import cl.dsoto.entities.Role;
-import cl.dsoto.services.RoleService;
+import cl.dsoto.services.impl.DefaultRoleService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;
@@ -16,10 +16,7 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
-import java.security.Principal;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 
@@ -34,13 +31,13 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 public class RoleResource {
 
     @Inject
-    RoleService roleService;
+    DefaultRoleService defaultRoleService;
 
 
     @GET
     public Response getAllRoles() {
         try {
-            List<Role> roles = roleService.getAllRoles();
+            List<Role> roles = defaultRoleService.getAllRoles();
             return Response.ok(roles).build();
         }
         catch (Exception e) {
@@ -53,7 +50,7 @@ public class RoleResource {
     @Path("save")
     public Response createRole(Role role) {
         try {
-            Role newRole = roleService.saveRole(role);
+            Role newRole = defaultRoleService.saveRole(role);
             return Response.ok(newRole).build();
         }
         catch (Exception e) {
@@ -66,7 +63,7 @@ public class RoleResource {
     @Path("update")
     public Response updateRole(Role role) {
         try {
-            Role newRole = roleService.updateRole(role);
+            Role newRole = defaultRoleService.updateRole(role);
             return Response.ok(newRole).build();
         }
         catch (Exception e) {
@@ -79,7 +76,7 @@ public class RoleResource {
     @Path("delete/{id}")
     public Response deleteUser(@PathParam("id") String id) {
         try {
-            roleService.deleteRole(id);
+            defaultRoleService.deleteRole(id);
             return Response.ok().build();
         }
         catch (Exception e) {

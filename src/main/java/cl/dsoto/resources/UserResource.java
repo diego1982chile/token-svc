@@ -1,7 +1,7 @@
 package cl.dsoto.resources;
 
 import cl.dsoto.entities.User;
-import cl.dsoto.services.UserService;
+import cl.dsoto.services.impl.DefaultUserService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;
@@ -31,7 +31,7 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 public class UserResource {
 
     @Inject
-    UserService userService;
+    DefaultUserService defaultUserService;
 
     @GET
     @Path("/me")
@@ -42,7 +42,7 @@ public class UserResource {
     @GET
     public Response getAllUsers() {
         try {
-            List<User> users = userService.getAllUsers();
+            List<User> users = defaultUserService.getAllUsers();
             return Response.ok(users).build();
         }
         catch (Exception e) {
@@ -55,7 +55,7 @@ public class UserResource {
     @Path("save")
     public Response createUser(User user) {
         try {
-            User newUser = userService.saveUser(user);
+            User newUser = defaultUserService.saveUser(user);
             return Response.ok(newUser).build();
         }
         catch (Exception e) {
@@ -68,7 +68,7 @@ public class UserResource {
     @Path("delete/{id}")
     public Response deleteUser(@PathParam("id") String id) {
         try {
-            userService.deleteUser(id);
+            defaultUserService.deleteUser(id);
             return Response.ok().build();
         }
         catch (Exception e) {
@@ -81,7 +81,7 @@ public class UserResource {
     @Path("clear")
     public Response clear() {
         try {
-            userService.clear();
+            defaultUserService.clear();
             return Response.ok().build();
         }
         catch (Exception e) {

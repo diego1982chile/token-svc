@@ -3,20 +3,12 @@ package cl.dsoto.resources;
 
 import cl.dsoto.entities.Role;
 import cl.dsoto.repositories.RoleRepository;
-import cl.dsoto.services.CypherService;
+import cl.dsoto.services.ConfigService;
+import cl.dsoto.services.impl.DefaultCypherService;
 import io.quarkus.logging.Log;
 import io.quarkus.security.AuthenticationFailedException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.CurrentIdentityAssociation;
-import io.quarkus.security.identity.IdentityProviderManager;
-import io.quarkus.security.identity.SecurityIdentity;
-import io.quarkus.security.identity.request.AuthenticationRequest;
-import io.quarkus.vertx.http.runtime.security.ChallengeData;
-import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
-import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
-import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
-import io.smallrye.mutiny.Uni;
-import io.vertx.ext.web.RoutingContext;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -45,7 +37,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
@@ -58,7 +49,7 @@ import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 public class TokenProviderResource {
 
     @Inject
-    CypherService cypherService;
+    DefaultCypherService defaultCypherService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -76,13 +67,16 @@ public class TokenProviderResource {
     @Inject
     CurrentIdentityAssociation identity;
 
+    @Inject
+    private ConfigService configService;
+
     @PostConstruct
     public void init() {
         try {
             // Instantiate Spring Data factory
             //RepositoryFactorySupport factory = new JpaRepositoryFactory(entityManager);
 
-            key = cypherService.readPrivateKey();
+            key = configService.getPrivateKey();
 
             //this.roleRepository = factory.getRepository(RoleRepository.class);
             List<Role> roles = roleRepository.findAll();
@@ -125,7 +119,7 @@ public class TokenProviderResource {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        String token = CypherService.generateJWT(key, username, target);
+        String token = DefaultCypherService.generateJWT(key, username, target);
 
         Map<String, String> response = new HashMap<>();
         response.put("token", token);

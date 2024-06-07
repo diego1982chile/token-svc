@@ -1,14 +1,11 @@
-package cl.dsoto.services;
+package cl.dsoto.services.impl;
 
 
 import cl.dsoto.entities.User;
 import cl.dsoto.repositories.UserRepository;
 import io.quarkus.elytron.security.common.BcryptUtil;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
 import java.util.List;
@@ -17,7 +14,7 @@ import java.util.List;
  * Created by root on 13-10-22.
  */
 @RequestScoped
-public class UserService {
+public class DefaultUserService {
 
     @Inject
     private UserRepository userRepository;

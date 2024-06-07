@@ -1,4 +1,4 @@
-package cl.dsoto.services;
+package cl.dsoto.services.impl;
 
 
 import cl.dsoto.model.MPJWTToken;
@@ -12,15 +12,7 @@ import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.RSASSASigner;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.RequestScoped;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMKeyPair;
-import org.bouncycastle.openssl.PEMParser;
-import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +21,7 @@ import java.util.UUID;
  * Created by root on 09-12-22.
  */
 @RequestScoped
-public class CypherService {
+public class DefaultCypherService {
 
     public static String generateJWT(PrivateKey key, String subject, List<String> groups) {
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
@@ -64,17 +56,6 @@ public class CypherService {
         }
 
         return jwsObject.serialize();
-    }
-
-    public PrivateKey readPrivateKey() throws IOException {
-
-        InputStream inputStream = CypherService.class.getResourceAsStream("/privateKey.pem");
-
-        PEMParser pemParser = new PEMParser(new InputStreamReader(inputStream));
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(new BouncyCastleProvider());
-        Object object = pemParser.readObject();
-        KeyPair kp = converter.getKeyPair((PEMKeyPair) object);
-        return kp.getPrivate();
     }
 
 }

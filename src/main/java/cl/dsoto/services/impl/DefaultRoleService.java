@@ -1,9 +1,8 @@
-package cl.dsoto.services;
+package cl.dsoto.services.impl;
 
 
 import cl.dsoto.entities.Role;
 import cl.dsoto.repositories.RoleRepository;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
@@ -16,7 +15,7 @@ import java.util.List;
  * Created by root on 13-10-22.
  */
 @RequestScoped
-public class RoleService {
+public class DefaultRoleService {
 
     @PersistenceContext
     private EntityManager entityManager;

@@ -77,10 +77,18 @@
 #   accessed directly. (example: "foo.example.com,bar.example.com")
 #
 ###
+
+FROM maven:eclipse-temurin AS builder
+COPY ./pom.xml /usr/src/app/
+RUN mvn -f /usr/src/app/pom.xml -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies
+COPY ./.env /usr/src/app/
+COPY src /usr/src/app/src
+WORKDIR /usr/src/app
+RUN mvn -DskipTests=true -Dquarkus.package.type=mutable-jar -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies clean package
+
 FROM registry.access.redhat.com/ubi8/openjdk-21:1.18
 
 ENV LANGUAGE='en_US:en'
-
 
 # We make four distinct layers so if there are application changes the library layers can be re-used
 COPY --chown=185 target/quarkus-app/lib/ /deployments/lib/

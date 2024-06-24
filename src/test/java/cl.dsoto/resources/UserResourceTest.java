@@ -94,7 +94,7 @@ public class UserResourceTest {
                 //.auth().preemptive().basic("admin", "admin")
                 .auth().form("user", "user", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
                 .when()
-                .get("/users/me")
+                .get("/api/users/me")
                 .then()
                 .statusCode(HttpStatus.SC_FORBIDDEN);
     }

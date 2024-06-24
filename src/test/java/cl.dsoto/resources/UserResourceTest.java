@@ -83,7 +83,7 @@ public class UserResourceTest {
 
     @Test
     public void shouldNotAccessAdminWhenAnonymous() {
-        get("/users")
+        get("/api/users")
                 .then()
                 .statusCode(HttpStatus.SC_UNAUTHORIZED);
     }
@@ -105,7 +105,7 @@ public class UserResourceTest {
                 //.auth().preemptive().basic("admin", "admin")
                 .auth().form("admin", "admin", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
                 .when()
-                .get("/users/me")
+                .get("/api/users/me")
                 .then()
                 .statusCode(HttpStatus.SC_OK)
                 .body(is("admin"));

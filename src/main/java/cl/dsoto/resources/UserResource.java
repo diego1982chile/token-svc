@@ -26,7 +26,7 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
  */
 @RequestScoped
 @Produces(APPLICATION_JSON)
-@Path("/users")
+@Path("users")
 @RolesAllowed({"ADMIN"})
 public class UserResource {
 

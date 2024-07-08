@@ -1,5 +1,8 @@
 package cl.dsoto.ui;
 
+import cl.dsoto.entities.Role;
+import cl.dsoto.repositories.RoleRepository;
+import cl.dsoto.services.ConfigService;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.login.AbstractLogin;
@@ -13,7 +16,21 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinServletRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.VaadinSession;
+import com.vaadin.flow.theme.Theme;
+import com.vaadin.flow.theme.material.Material;
+import io.quarkus.logging.Log;
+import io.quarkus.security.identity.CurrentIdentityAssociation;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import java.io.IOException;
+import java.security.PrivateKey;
+import java.util.ArrayList;
+import java.util.List;
 
 @Route("login")
 @PageTitle("Login")
@@ -24,6 +41,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
     private static final String LOGIN_SUCCESS_URL = "/";
 
     private LoginForm login = new LoginForm();
+
 
     public LoginView() {
         addClassName("login-view");
@@ -51,9 +69,15 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
     public void onComponentEvent(AbstractLogin.LoginEvent loginEvent) {
         try {
             HttpServletRequest request = VaadinServletRequest.getCurrent().getHttpServletRequest();
+
+            if (request.getUserPrincipal() != null) {
+                Log.warn("User already logged-in");
+                request.logout();
+            }
+
             request.login(loginEvent.getUsername(), loginEvent.getPassword());
-            VaadinSession.getCurrent().setAttribute("username", loginEvent.getUsername());
-            getUI().ifPresent(ui -> ui.navigate("secured"));
+
+            getUI().ifPresent(ui -> ui.navigate("main"));
         } catch (Exception e) {
             Notification.show("Invalid credentials");
         }

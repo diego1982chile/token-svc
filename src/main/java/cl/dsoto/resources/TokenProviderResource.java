@@ -16,6 +16,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.POST;
@@ -48,11 +49,6 @@ import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 @Path("/auth")
 public class TokenProviderResource {
 
-    @Inject
-    DefaultCypherService defaultCypherService;
-
-    @PersistenceContext
-    private EntityManager entityManager;
 
     @Inject
     private RoleRepository roleRepository;
@@ -125,8 +121,19 @@ public class TokenProviderResource {
         response.put("token", token);
         response.put("jsessionid", request.getSession(false).getId());
 
+        Cookie cookie = new Cookie("JSESSIONID", "value");
+        cookie.setHttpOnly(true);
+        //cookie.setSecure(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60);
+
+        String cookieString = String.format("%s=%s; Path=%s; HttpOnly; Secure; SameSite=None",
+                cookie.getName(), cookie.getValue(), cookie.getPath());
+
         return Response.status(Response.Status.OK)
                 .header(AUTHORIZATION, "Bearer ".concat(token))
+                .header("Set-Cookie", cookieString)
+                .cookie()
                 .entity(response)
                 .build();
 

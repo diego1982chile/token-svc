@@ -54,6 +54,8 @@ package-lock.json
 pnpm-lock.yaml
 .yarn/
 .yarnrc.yml
+src/main/bundles/*
+!src/main/bundles/README.md
 
 ### Vaadin generated sources
 src/main/frontend/generated/

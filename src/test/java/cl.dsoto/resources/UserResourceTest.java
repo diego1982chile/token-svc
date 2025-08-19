@@ -26,6 +26,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Set;
 
 import static io.restassured.RestAssured.get;
 import static io.restassured.RestAssured.given;
@@ -53,12 +54,12 @@ public class UserResourceTest {
         User user = new User();
         user.setUsername("user");
         user.setPassword(BcryptUtil.bcryptHash("user"));
-        user.setRoles(List.of(userRole));
+        user.setRoles(Set.of(userRole));
 
         User admin = new User();
         admin.setUsername("admin");
         admin.setPassword(BcryptUtil.bcryptHash("admin"));
-        admin.setRoles(List.of(adminRole, userRole));
+        admin.setRoles(Set.of(adminRole, userRole));
 
         // reset and load all test users
         userRepository.save(user);
@@ -83,7 +84,7 @@ public class UserResourceTest {
 
     @Test
     public void shouldNotAccessAdminWhenAnonymous() {
-        get("/api/users")
+        get("/token-service/api/users")
                 .then()
                 .statusCode(HttpStatus.SC_OK);
                 //.statusCode(HttpStatus.SC_UNAUTHORIZED);
@@ -93,7 +94,7 @@ public class UserResourceTest {
     public void shouldNotAccessUserWhenAdminAuthenticated() {
         given()
                 //.auth().preemptive().basic("admin", "admin")
-                .auth().form("user", "user", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
+                .auth().form("user", "user", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
                 .when()
                 .get("/api/users/me")
                 .then()
@@ -104,7 +105,7 @@ public class UserResourceTest {
     public void shouldAccessUserAndGetIdentityWhenUserAuthenticated() {
         given()
                 //.auth().preemptive().basic("admin", "admin")
-                .auth().form("admin", "admin", new FormAuthConfig("/api/auth/login", "j_username", "j_password"))
+                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
                 .when()
                 .get("/api/users/me")
                 .then()

@@ -83,7 +83,7 @@ COPY ./pom.xml /usr/src/app/
 RUN mvn -f /usr/src/app/pom.xml -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies
 COPY src /usr/src/app/src
 WORKDIR /usr/src/app
-RUN mvn -DskipTests=true -Dquarkus.package.type=mutable-jar -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies clean package
+RUN mvn -DskipTests=true -Pproduction -Dquarkus.package.type=mutable-jar -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies clean package
 
 FROM registry.access.redhat.com/ubi8/openjdk-21:1.18
 

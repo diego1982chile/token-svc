@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  token-svc:
+    #image: dpe-admin:latest
+    build:
+      context: .
+      dockerfile: src/main/docker/Dockerfile.jvm
+    container_name: container_token-svc
+    ports:
+      - "9091:8080"
+      - "8010:8000"
+    environment:
+      JAVA_DEBUG: "true"
+      JAVA_DEBUG_PORT: "*:8000"
+      JWT_ISSUER: ${JWT_ISSUER}
+    volumes:
+      - ${PWD}/db/accounts.db:/deployments/accounts.db

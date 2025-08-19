@@ -7,6 +7,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import jakarta.inject.Provider;
 
 @ApplicationScoped
 public class VaadinSecurityServiceInitListener { // implements VaadinServiceInitListener {
@@ -15,7 +16,7 @@ public class VaadinSecurityServiceInitListener { // implements VaadinServiceInit
     AccessAnnotationChecker accessChecker;
 
     @Inject
-    SecurityIdentity securityIdentity;
+    Provider<SecurityIdentity> identityProvider;
 
     public void serviceInit(@Observes ServiceInitEvent event) {
         event.getSource().addUIInitListener(uiInitEvent -> {
@@ -23,6 +24,13 @@ public class VaadinSecurityServiceInitListener { // implements VaadinServiceInit
 
                 if (!accessChecker.hasAccess(enterEvent.getNavigationTarget())) {
                     enterEvent.rerouteTo(AccessDeniedView.class); // Redirect to access denied if user lacks permission
+                }
+
+                if (!enterEvent.getLocation().getPath().endsWith("login") && !enterEvent.getLocation().getPath().endsWith("logout")) {
+                    SecurityIdentity currentIdentity = identityProvider.get();
+                    if (currentIdentity == null || currentIdentity.isAnonymous()) {
+                        enterEvent.rerouteTo(AccessDeniedView.class); // Redirect to access denied if user lacks permission
+                    }
                 }
 
             });

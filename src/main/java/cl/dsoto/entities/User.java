@@ -13,13 +13,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_SET;
 
 /**
  * Created by root on 09-12-22.
@@ -50,10 +55,22 @@ public class User {
     @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.MERGE, CascadeType.DETACH})
     @JoinTable(name = "user_role", joinColumns = @JoinColumn(name = "user_username"), inverseJoinColumns = @JoinColumn(name = "role_rolename"))
     @Roles
-    private List<Role> roles;
+    private Set<Role> roles;
 
     public String getId() {
         return username;
     }
 
+    // Asegurarse de devolver un Set modificable
+    public Set<Role> getRoles() {
+        if (this.roles != null) {
+            return new HashSet<>(this.roles); // Devuelve un Set modificable
+        } else {
+            return EMPTY_SET; // Devuelve un Set modificable
+        }
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
 }

@@ -43,6 +43,7 @@ public class UserResource {
     public Response getAllUsers() {
         try {
             List<User> users = defaultUserService.getAllUsers();
+            users.forEach(user -> user.setPassword(null));
             return Response.ok(users).build();
         }
         catch (Exception e) {

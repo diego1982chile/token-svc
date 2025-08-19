@@ -1,8 +1,5 @@
 package cl.dsoto.ui;
 
-import cl.dsoto.entities.Role;
-import cl.dsoto.repositories.RoleRepository;
-import cl.dsoto.services.ConfigService;
 import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.login.AbstractLogin;
@@ -14,23 +11,15 @@ import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinServletRequest;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.server.VaadinServletResponse;
 import com.vaadin.flow.server.VaadinSession;
-import com.vaadin.flow.theme.Theme;
-import com.vaadin.flow.theme.material.Material;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import io.quarkus.logging.Log;
-import io.quarkus.security.identity.CurrentIdentityAssociation;
-import jakarta.annotation.PostConstruct;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
-import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.ws.rs.core.Response;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
-
-import java.io.IOException;
-import java.security.PrivateKey;
-import java.util.ArrayList;
-import java.util.List;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Route("login")
 @PageTitle("Login")
@@ -42,6 +31,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
 
     private LoginForm login = new LoginForm();
 
+    @Inject
+    SecurityIdentity identity;
 
     public LoginView() {
         addClassName("login-view");
@@ -52,7 +43,7 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
 
         login.addLoginListener(this);
 
-        add(new H1("Test Application"), login);
+        add(new H1("Token Admin"), login);
     }
 
     @Override
@@ -62,6 +53,12 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
                 .getParameters()
                 .containsKey("error")) {
             login.setError(true);
+        }
+
+        if (identity != null && !identity.isAnonymous()) {
+            // Usuario ya está autenticado, pero volvió al login (por ejemplo con back)
+            VaadinSession.getCurrent().getSession().invalidate();
+            beforeEnterEvent.rerouteTo("login"); // recarga limpia
         }
     }
 
@@ -77,7 +74,8 @@ public class LoginView extends VerticalLayout implements BeforeEnterObserver,
 
             request.login(loginEvent.getUsername(), loginEvent.getPassword());
 
-            getUI().ifPresent(ui -> ui.navigate("main"));
+
+            getUI().ifPresent(ui -> ui.navigate("home"));
         } catch (Exception e) {
             Notification.show("Invalid credentials");
         }

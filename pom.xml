@@ -14,7 +14,7 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.9.3</quarkus.platform.version>
-    <vaadin.version>24.4.1</vaadin.version>
+    <vaadin.version>24.6.4</vaadin.version>
     <skipITs>true</skipITs>
     <surefire-plugin.version>3.2.5</surefire-plugin.version>
   </properties>
@@ -27,6 +27,13 @@
         <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.vaadin</groupId>
+        <artifactId>vaadin-bom</artifactId>
+        <type>pom</type>
+        <scope>import</scope>
+        <version>${vaadin.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -110,19 +117,18 @@
     <dependency>
       <groupId>com.vaadin</groupId>
       <artifactId>vaadin-core</artifactId>
-      <version>24.4.1</version>
     </dependency>
     <!-- https://mvnrepository.com/artifact/com.vaadin/copilot -->
     <dependency>
       <groupId>com.vaadin</groupId>
       <artifactId>copilot</artifactId>
-      <version>24.4.1</version>
+      <version>24.6.4</version>
     </dependency>
 
     <dependency>
       <groupId>com.vaadin</groupId>
       <artifactId>vaadin-quarkus-extension</artifactId>
-      <version>24.4.1</version>
+      <version>24.6.4</version>
     </dependency>
 
     <!-- https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform -->
@@ -137,6 +143,11 @@
       <artifactId>jna</artifactId>
       <version>5.14.0</version>
       <scope>compile</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-websockets</artifactId>
     </dependency>
 
     <!-- JWT and Security -->
@@ -166,6 +177,13 @@
       <version>1.18.32</version>
       <scope>compile</scope>
     </dependency>
+
+    <dependency>
+      <groupId>mysql</groupId>
+      <artifactId>mysql-connector-java</artifactId>
+      <version>8.0.33</version> <!-- O la última versión estable -->
+    </dependency>
+
   </dependencies>
 
 
@@ -237,6 +255,37 @@
       <properties>
         <skipITs>false</skipITs>
         <quarkus.package.type>native</quarkus.package.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>production</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.vaadin</groupId>
+            <artifactId>vaadin-maven-plugin</artifactId>
+            <version>24.6.1</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>prepare-frontend</goal>
+                  <goal>build-frontend</goal>
+                </goals>
+                <phase>compile</phase>
+              </execution>
+            </executions>
+            <configuration>
+              <productionMode>true</productionMode>
+              <pnpmEnable>false</pnpmEnable>
+              <optimizeBundle>false</optimizeBundle>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+      <properties>
+        <quarkus.package.type>fast-jar</quarkus.package.type>
+        <vaadin.force.production.build>true</vaadin.force.production.build>
+        <skipITs>true</skipITs>
       </properties>
     </profile>
   </profiles>

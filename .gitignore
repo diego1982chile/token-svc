@@ -47,3 +47,16 @@ nb-configuration.xml
 
 # key-pairs
 *.pem
+
+# ========================
+# Vaadin
+# ========================
+node_modules/
+frontend/generated/
+frontend/package-lock.json
+frontend/.pnpmfile.cjs
+frontend/.vite/
+vite.config.ts
+pnpm-lock.yaml
+webpack.generated.js
+webpack.config.js

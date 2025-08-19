@@ -4,6 +4,7 @@ package cl.dsoto.resources;
 import cl.dsoto.entities.Role;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.services.ConfigService;
+import cl.dsoto.services.CypherService;
 import cl.dsoto.services.impl.DefaultCypherService;
 import io.quarkus.logging.Log;
 import io.quarkus.security.AuthenticationFailedException;
@@ -63,8 +64,14 @@ public class TokenProviderResource {
     @Inject
     CurrentIdentityAssociation identity;
 
+    private static final String X_ISSUER_HEADER = "X-Issuer";
+
     @Inject
     private ConfigService configService;
+
+    @Inject
+    private CypherService cypherService;
+
 
     @PostConstruct
     public void init() {
@@ -115,10 +122,12 @@ public class TokenProviderResource {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        String token = DefaultCypherService.generateJWT(key, username, target);
+        String issuer = request.getHeader(X_ISSUER_HEADER);
+
+        String jwt = cypherService.generateJWT(key, username, target, issuer);
 
         Map<String, String> response = new HashMap<>();
-        response.put("token", token);
+        response.put("token", jwt);
         response.put("jsessionid", request.getSession(false).getId());
 
         Cookie cookie = new Cookie("JSESSIONID", "value");
@@ -131,7 +140,7 @@ public class TokenProviderResource {
                 cookie.getName(), cookie.getValue(), cookie.getPath());
 
         return Response.status(Response.Status.OK)
-                .header(AUTHORIZATION, "Bearer ".concat(token))
+                .header(AUTHORIZATION, "Bearer ".concat(jwt))
                 .header("Set-Cookie", cookieString)
                 .cookie()
                 .entity(response)

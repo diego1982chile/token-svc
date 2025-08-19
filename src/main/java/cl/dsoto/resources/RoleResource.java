@@ -2,6 +2,7 @@ package cl.dsoto.resources;
 
 
 import cl.dsoto.entities.Role;
+import cl.dsoto.services.RoleService;
 import cl.dsoto.services.impl.DefaultRoleService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.RolesAllowed;
@@ -17,6 +18,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 
 import java.util.List;
+import java.util.Set;
 
 import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 
@@ -31,13 +33,13 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 public class RoleResource {
 
     @Inject
-    DefaultRoleService defaultRoleService;
+    RoleService roleService;
 
 
     @GET
     public Response getAllRoles() {
         try {
-            List<Role> roles = defaultRoleService.getAllRoles();
+            Set<Role> roles = roleService.getAllRoles();
             return Response.ok(roles).build();
         }
         catch (Exception e) {
@@ -50,7 +52,7 @@ public class RoleResource {
     @Path("save")
     public Response createRole(Role role) {
         try {
-            Role newRole = defaultRoleService.saveRole(role);
+            Role newRole = roleService.saveRole(role);
             return Response.ok(newRole).build();
         }
         catch (Exception e) {
@@ -63,7 +65,7 @@ public class RoleResource {
     @Path("update")
     public Response updateRole(Role role) {
         try {
-            Role newRole = defaultRoleService.updateRole(role);
+            Role newRole = roleService.updateRole(role);
             return Response.ok(newRole).build();
         }
         catch (Exception e) {
@@ -74,9 +76,9 @@ public class RoleResource {
 
     @DELETE
     @Path("delete/{id}")
-    public Response deleteUser(@PathParam("id") String id) {
+    public Response deleteUser(@PathParam("id") Long id) {
         try {
-            defaultRoleService.deleteRole(id);
+            roleService.deleteRole(id);
             return Response.ok().build();
         }
         catch (Exception e) {

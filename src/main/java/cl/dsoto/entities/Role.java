@@ -2,6 +2,8 @@ package cl.dsoto.entities;
 
 import io.quarkus.security.jpa.RolesValue;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -21,6 +23,9 @@ import lombok.NoArgsConstructor;
 public class Role {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @RolesValue
     String rolename;
 
@@ -31,7 +36,11 @@ public class Role {
         return rolename;
     }
 
-    public String getId() {
+    public String getRolename() {
         return rolename;
+    }
+
+    public void setRolename(String rolename) {
+        this.rolename = rolename;
     }
 }

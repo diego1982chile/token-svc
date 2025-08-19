@@ -14,13 +14,14 @@ import jakarta.inject.Singleton;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by root on 09-12-22.
  */
 @Startup
 @Singleton
-@IfBuildProfile("dev")
+//@IfBuildProfile("dev")
 public class DatabaseInitializer {
 
     @Inject
@@ -56,7 +57,7 @@ public class DatabaseInitializer {
             User admin = User.builder()
                     .username("diego.abelardo.soto@gmail.com")
                     .password(password)
-                    .roles(Arrays.asList(adminRole, userRole))
+                    .roles(Set.of(adminRole, userRole))
                     .build();
 
             userRepository.save(admin);

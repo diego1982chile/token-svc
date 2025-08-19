@@ -2,6 +2,7 @@ package cl.dsoto.services.impl;
 
 
 import cl.dsoto.model.MPJWTToken;
+import cl.dsoto.services.CypherService;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JOSEObjectType;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -21,9 +22,10 @@ import java.util.UUID;
  * Created by root on 09-12-22.
  */
 @RequestScoped
-public class DefaultCypherService {
+public class DefaultCypherService implements CypherService {
 
-    public static String generateJWT(PrivateKey key, String subject, List<String> groups) {
+    @Override
+    public String generateJWT(PrivateKey key, String subject, List<String> groups, String issuer) {
         JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256)
                 .type(JOSEObjectType.JWT)
                 .keyID("apisKey")
@@ -32,7 +34,8 @@ public class DefaultCypherService {
         MPJWTToken token = new MPJWTToken();
         token.setAud("apisGt");
         //token.setIss("https://apis.internal.forevision.cl");  // Must match the expected issues configuration values
-        token.setIss("https://apis.internal.dsoto.cl");  // Must match the expected issues configuration values
+        //token.setIss("https://apis.internal.dsoto.cl");  // Must match the expected issues configuration values
+        token.setIss(issuer);  // Must match the expected issues configuration values
         token.setJti(UUID.randomUUID().toString());
 
         token.setSub(subject);

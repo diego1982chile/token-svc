@@ -9,7 +9,7 @@ This tool allows to manage principals and levels of access for each of the resou
 This mode is useful for development, live reload, and debugging.  
 
 **Prerequisites:**
-- Java 17+
+- Java 21+
 - Maven
 - Node.js & npm (for Vaadin frontend)
 

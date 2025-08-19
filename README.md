@@ -14,7 +14,7 @@ This mode is useful for development, live reload, and debugging.
 - Node.js & npm (for Vaadin frontend)
 
 **Steps:**
-```bash
+
 # Clone the repository
 git clone <your-repo-url>
 cd token-svc

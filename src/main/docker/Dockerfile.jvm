@@ -78,7 +78,7 @@
 #
 ###
 
-FROM maven:eclipse-temurin AS builder
+FROM maven:3.9.11-eclipse-temurin-21 AS builder
 COPY ./pom.xml /usr/src/app/
 RUN mvn -f /usr/src/app/pom.xml -B de.qaware.maven:go-offline-maven-plugin:resolve-dependencies
 COPY src /usr/src/app/src

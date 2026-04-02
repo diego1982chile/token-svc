@@ -19,7 +19,8 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @RequestScoped
 @Produces(APPLICATION_JSON)
 @Path("healthcheck")
-public class HealthcheckResource implements HealthCheck {
+public class
+HealthcheckResource implements HealthCheck {
 
     @GET
     @Override

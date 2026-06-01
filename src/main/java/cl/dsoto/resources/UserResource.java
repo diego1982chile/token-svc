@@ -1,6 +1,6 @@
 package cl.dsoto.resources;
 
-import cl.dsoto.entities.User;
+import cl.dsoto.model.User;
 import cl.dsoto.services.impl.DefaultUserService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.RolesAllowed;
@@ -57,6 +57,7 @@ public class UserResource {
     public Response createUser(User user) {
         try {
             User newUser = defaultUserService.saveUser(user);
+            newUser.setPassword(null);
             return Response.ok(newUser).build();
         }
         catch (Exception e) {
@@ -78,16 +79,4 @@ public class UserResource {
         return Response.serverError().build();
     }
 
-    @DELETE
-    @Path("clear")
-    public Response clear() {
-        try {
-            defaultUserService.clear();
-            return Response.ok().build();
-        }
-        catch (Exception e) {
-            Log.error(e.getMessage());
-        }
-        return Response.serverError().build();
-    }
 }

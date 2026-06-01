@@ -2,8 +2,11 @@ package cl.dsoto.services;
 
 import java.io.IOException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 
 public interface ConfigService {
 
-    public PrivateKey getPrivateKey() throws IOException;
+    PrivateKey getPrivateKey() throws IOException;
+
+    PublicKey getPublicKey() throws IOException;
 }

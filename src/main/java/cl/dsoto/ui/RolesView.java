@@ -1,9 +1,7 @@
 package cl.dsoto.ui;
 
-import cl.dsoto.entities.Role;
-import cl.dsoto.entities.User;
+import cl.dsoto.model.Role;
 import cl.dsoto.services.RoleService;
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.grid.Grid;
@@ -13,12 +11,13 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
-import com.vaadin.flow.data.renderer.ComponentRenderer;
-import com.vaadin.flow.data.renderer.Renderer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.PostConstruct;
@@ -29,26 +28,78 @@ import java.util.Set;
 
 @Route(value = "roles", layout = MainView.class)
 @RolesAllowed({"ADMIN"})
-public class RolesView extends VerticalLayout { // implements BeforeEnterObserver {
+public class RolesView extends VerticalLayout {
 
     @Inject
     private RoleService roleService;
 
     @PostConstruct
-    private void init() {
+    void init() {
+        configureView();
 
+        TextField searchField = createSearchField();
+        Button newRole = createNewRoleButton();
+        Grid<Role> grid = createGrid(searchField, newRole);
+
+        add(createHeading(), createToolbar(searchField, newRole), grid);
+        expand(grid);
+    }
+
+    private void configureView() {
+        addClassNames("alta-page", "alta-list-page");
+        setSizeFull();
+        setPadding(true);
+        setSpacing(true);
+        getStyle().set("gap", "var(--lumo-space-m)");
+    }
+
+    private VerticalLayout createHeading() {
+        H1 title = new H1("Roles");
+        title.addClassNames("m-0");
+        title.getStyle()
+                .set("font-size", "var(--lumo-font-size-xl)")
+                .set("font-weight", "600");
+
+        Paragraph description = new Paragraph("Maintain reusable access groups for the application.");
+        description.addClassNames("m-0", "text-secondary");
+
+        VerticalLayout heading = new VerticalLayout(title, description);
+        heading.addClassName("alta-page-heading");
+        heading.setPadding(false);
+        heading.setSpacing(false);
+        return heading;
+    }
+
+    private HorizontalLayout createToolbar(TextField searchField, Button newRole) {
+        HorizontalLayout toolbar = new HorizontalLayout(searchField, newRole);
+        toolbar.addClassName("alta-toolbar");
+        toolbar.setWidthFull();
+        toolbar.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END);
+        toolbar.expand(searchField);
+        return toolbar;
+    }
+
+    private TextField createSearchField() {
         TextField searchField = new TextField();
-        searchField.setWidth("100%");
+        searchField.addClassName("alta-search-field");
+        searchField.setWidthFull();
         searchField.setPlaceholder("Search");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        searchField.setValueChangeMode(ValueChangeMode.EAGER.EAGER);
+        searchField.setValueChangeMode(ValueChangeMode.EAGER);
+        searchField.setClearButtonVisible(true);
+        return searchField;
+    }
 
-        Button newRole = new Button("New Role");
+    private Button createNewRoleButton() {
+        Button newRole = new Button("New role", VaadinIcon.PLUS.create());
+        newRole.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        return newRole;
+    }
 
-        HorizontalLayout horizontalLayout = new HorizontalLayout(searchField, newRole);
-        horizontalLayout.getStyle().set("max-width","700px");
-
+    private Grid<Role> createGrid(TextField searchField, Button newRole) {
         Grid<Role> grid = new Grid<>(Role.class, false);
+        grid.addClassName("alta-grid");
+        grid.setSizeFull();
         grid.setItems(roleService.getAllRoles());
         Editor<Role> editor = grid.getEditor();
 
@@ -76,16 +127,21 @@ public class RolesView extends VerticalLayout { // implements BeforeEnterObserve
                 }
                 Notification.show("Role deleted");
             });
-            deleteButton.addClassName("delete-button");
+            deleteButton.addClassNames("alta-action-button", "delete-button");
+            deleteButton.addThemeVariants(ButtonVariant.LUMO_ICON, ButtonVariant.LUMO_ERROR);
+            deleteButton.getElement().setAttribute("title", "Delete role");
             return deleteButton;
-        }).setWidth("80px").setFlexGrow(0);
+        }).setHeader("").setWidth("64px").setFlexGrow(0);
 
         Grid.Column<Role> rolenameColumn = grid
                 .addColumn(Role::getRolename)
                 .setHeader("Rolename")
-                .setWidth("200px").setFlexGrow(0);
+                .setWidth("0").setFlexGrow(1);
         Grid.Column<Role> editColumn = grid.addComponentColumn(role -> {
-            Button editButton = new Button("Edit");
+            Button editButton = new Button(VaadinIcon.PENCIL.create());
+            editButton.addClassName("alta-action-button");
+            editButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+            editButton.getElement().setAttribute("title", "Edit role");
             editButton.addClickListener(e -> {
                 if (editor.isOpen()) {
                     editor.cancel();
@@ -93,7 +149,7 @@ public class RolesView extends VerticalLayout { // implements BeforeEnterObserve
                 grid.getEditor().editItem(role);
             });
             return editButton;
-        }).setWidth("150px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("88px").setFlexGrow(0);
 
         Binder<Role> binder = new Binder<>(Role.class);
         editor.setBinder(binder);
@@ -106,35 +162,32 @@ public class RolesView extends VerticalLayout { // implements BeforeEnterObserve
                 .bind(Role::getRolename, Role::setRolename);
         rolenameColumn.setEditorComponent(rolenameField);
 
-        Button saveButton = new Button("Save", e -> {
-            //if (editor.isOpen()) {
-            // Guardar el objeto editado en el Binder
-            Long previousRolename = editor.getItem().getId();
-            binder.writeBeanIfValid(editor.getItem());
-            Role role = editor.getItem();
-            // Guardar en la base de datos
-            /*
-            if (previousRolename == null) {
-                roleService.saveRole(role); // Actualiza la BD
-            } else {
-                role.setPreviousRolename(previousRolename);
-                roleService.updateRole(role); // Actualiza la BD
+        Button saveButton = new Button(VaadinIcon.CHECK.create(), e -> {
+            if (rolenameField.getValue() == null || rolenameField.getValue().trim().isEmpty()
+                    || !binder.writeBeanIfValid(editor.getItem())) {
+                Notification.show("Rolename must not be empty");
+                return;
             }
-            */
-            //role.setPreviousRolename(previousRolename);
+
+            Role role = editor.getItem();
+            role.setRolename(role.getRolename().trim());
             roleService.saveRole(role);
 
-            Notification.show("Datos guardados en la base de datos");
-            // Cerrar el editor
+            Notification.show("Role saved");
             editor.save();
             editor.closeEditor();
         });
-        Button cancelButton = new Button(VaadinIcon.CLOSE.create(),
-                e -> editor.cancel());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_ICON,
-                ButtonVariant.LUMO_ERROR);
+        saveButton.addClassName("alta-action-button");
+        saveButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        saveButton.getElement().setAttribute("title", "Save role");
+
+        Button cancelButton = new Button(VaadinIcon.CLOSE.create(), e -> editor.cancel());
+        cancelButton.addClassName("alta-action-button");
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_ICON, ButtonVariant.LUMO_ERROR);
+        cancelButton.getElement().setAttribute("title", "Cancel edit");
         HorizontalLayout actions = new HorizontalLayout(saveButton,
                 cancelButton);
+        actions.addClassName("alta-grid-actions");
         actions.setPadding(false);
         editColumn.setEditorComponent(actions);
 
@@ -157,24 +210,7 @@ public class RolesView extends VerticalLayout { // implements BeforeEnterObserve
             grid.getDataProvider().refreshAll();
             editor.editItem(role);
         });
-
-        getThemeList().clear();
-        getThemeList().add("spacing-s");
-        add(horizontalLayout, grid);
-
-        getStyle().set("max-width", "500px");
-    }
-
-    private static Renderer<User> createUserRenderer() {
-        return new ComponentRenderer<Component, User>(u -> {
-            HorizontalLayout horizontalLayout = new HorizontalLayout();
-            for (int i = 0; i < 8; ++i) {
-                Component component = VaadinIcon.ASTERISK.create();
-                component.getStyle().set("font-size", "4px");
-                horizontalLayout.add(component);
-            }
-            return horizontalLayout;
-        });
+        return grid;
     }
 
     public RolesView() {
@@ -184,16 +220,5 @@ public class RolesView extends VerticalLayout { // implements BeforeEnterObserve
     private boolean matchesTerm(String value, String searchTerm) {
         return value.toLowerCase().contains(searchTerm.toLowerCase());
     }
-
-    /*
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        SecurityIdentity securityIdentity = (SecurityIdentity) VaadinService.getCurrentRequest().getWrappedSession().getAttribute("securityIdentity");
-
-        if (!securityIdentity.getRoles().contains("ADMIN")) {
-            event.rerouteTo(LoginView.class);
-        }
-    }
-    */
 
 }

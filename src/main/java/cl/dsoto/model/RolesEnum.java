@@ -4,8 +4,8 @@ package cl.dsoto.model;
  * Created by root on 09-12-22.
  */
 public enum RolesEnum {
-    ADMIN("admin"),
-    USER("user");
+    ADMIN("ADMIN"),
+    USER("USER");
 
     private String role;
 

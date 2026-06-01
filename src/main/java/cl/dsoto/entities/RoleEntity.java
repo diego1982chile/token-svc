@@ -1,6 +1,7 @@
 package cl.dsoto.entities;
 
 import io.quarkus.security.jpa.RolesValue;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -19,14 +20,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@Table
-public class Role {
+@Table(name = "Role")
+public class RoleEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @RolesValue
+    @Column(nullable = false, unique = true)
     String rolename;
 
     String previousRolename;

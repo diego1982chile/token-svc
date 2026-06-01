@@ -1,15 +1,7 @@
 package cl.dsoto.services;
 
 
-import cl.dsoto.entities.User;
-import cl.dsoto.repositories.UserRepository;
-import io.quarkus.elytron.security.common.BcryptUtil;
-import jakarta.annotation.PostConstruct;
-import jakarta.enterprise.context.RequestScoped;
-import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import jakarta.transaction.Transactional;
+import cl.dsoto.model.User;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,13 +11,17 @@ import java.util.Optional;
  */
 public interface UserService {
 
-    public List<User> getAllUsers();
+    List<User> getAllUsers();
 
-    public User saveUser(User user);
+    User saveUser(User user);
 
-    public void deleteUser(String id);
+    void confirmEmail(String token);
 
-    public void clear();
+    void resendEmailConfirmation(String email);
 
-    public Optional<User> getUser(String id);
+    boolean isUserActive(String username);
+
+    void deleteUser(String id);
+
+    Optional<User> getUser(String id);
 }

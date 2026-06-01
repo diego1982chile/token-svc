@@ -1,19 +1,18 @@
 package cl.dsoto.config;
 
 
-import cl.dsoto.entities.Role;
-import cl.dsoto.entities.User;
+import cl.dsoto.entities.RoleEntity;
+import cl.dsoto.entities.UserEntity;
+import cl.dsoto.model.UserStatus;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
-import io.quarkus.arc.profile.IfBuildProfile;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -21,8 +20,11 @@ import java.util.Set;
  */
 @Startup
 @Singleton
-//@IfBuildProfile("dev")
 public class DatabaseInitializer {
+
+    private static final String ADMIN_ROLE = "ADMIN";
+    private static final String USER_ROLE = "USER";
+    private static final String DEV_ADMIN_USERNAME = "diego.abelardo.soto@gmail.com";
 
     @Inject
     private UserRepository userRepository;
@@ -30,50 +32,64 @@ public class DatabaseInitializer {
     @Inject
     private RoleRepository roleRepository;
 
+    @ConfigProperty(name = "identity.seed.enabled", defaultValue = "false")
+    boolean seedEnabled;
+
 
     @PostConstruct
-    private void init() {
-        initUsers();
+    void init() {
+        if (!seedEnabled) {
+            return;
+        }
         initRoles();
+        initUsers();
     }
 
     private void initUsers() {
-        List<User> users = userRepository.findAll();
-        List<Role> roles = roleRepository.findAll();
-
-        Role adminRole = Role.builder().rolename("ADMIN").build();
-        Role userRole = Role.builder().rolename("USER").build();
-
-        if(users.isEmpty()) {
+        if(userRepository.count() == 0) {
+            RoleEntity adminRole = roleRepository.findByRolename(ADMIN_ROLE);
+            RoleEntity userRole = roleRepository.findByRolename(USER_ROLE);
 
             String password = "123";
 
             // Protect user's password. The generated value can be stored in DB.
             password = BcryptUtil.bcryptHash(password);
 
-            // Print out protected password
-            System.out.println("My secure password = " + password);
-
-            User admin = User.builder()
-                    .username("diego.abelardo.soto@gmail.com")
+            UserEntity admin = UserEntity.builder()
+                    .username(DEV_ADMIN_USERNAME)
                     .password(password)
+                    .status(UserStatus.ACTIVE)
                     .roles(Set.of(adminRole, userRole))
                     .build();
 
             userRepository.save(admin);
+        } else {
+            ensureDevAdminHasAdminRole();
         }
 
     }
 
+    private void ensureDevAdminHasAdminRole() {
+        UserEntity admin = userRepository.findByUsername(DEV_ADMIN_USERNAME);
+        RoleEntity adminRole = roleRepository.findByRolename(ADMIN_ROLE);
+
+        if (admin == null || adminRole == null || admin.getRoles().contains(adminRole)) {
+            return;
+        }
+
+        Set<RoleEntity> roles = admin.getRoles();
+        roles.add(adminRole);
+        admin.setRoles(roles);
+        userRepository.save(admin);
+    }
+
     private void initRoles() {
-        List<Role> roles = roleRepository.findAll();
+        if(roleRepository.findByRolename(ADMIN_ROLE) == null) {
+            roleRepository.save(RoleEntity.builder().rolename(ADMIN_ROLE).build());
+        }
 
-        Role adminRole = Role.builder().rolename("ADMIN").build();
-        Role userRole = Role.builder().rolename("USER").build();
-
-        if(roles.isEmpty()) {
-            roleRepository.save(adminRole);
-            roleRepository.save(userRole);
+        if(roleRepository.findByRolename(USER_ROLE) == null) {
+            roleRepository.save(RoleEntity.builder().rolename(USER_ROLE).build());
         }
 
     }

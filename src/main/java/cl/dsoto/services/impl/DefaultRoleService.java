@@ -1,19 +1,15 @@
 package cl.dsoto.services.impl;
 
 
-import cl.dsoto.entities.Role;
-import cl.dsoto.entities.User;
+import cl.dsoto.entities.RoleEntity;
+import cl.dsoto.mappers.RoleMapper;
+import cl.dsoto.model.Role;
 import cl.dsoto.repositories.RoleRepository;
-import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.RoleService;
-import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,43 +23,48 @@ public class DefaultRoleService implements RoleService {
     @Inject
     private RoleRepository roleRepository;
 
+    @Inject
+    private RoleMapper roleMapper;
+
     @Override
+    @Transactional
     public Set<Role> getAllRoles() {
-        return roleRepository.findAllOrderByName();
+        return roleMapper.toModelSet(roleRepository.findAllOrderByName());
     }
 
     @Transactional
     @Override
     public Role saveRole(Role role) {
 
-        Role previous = roleRepository.findByRolename(role.getPreviousRolename());
+        RoleEntity previous = roleRepository.findByRolename(role.getPreviousRolename());
 
         if(previous != null) {
             previous.setRolename(role.getRolename());
             previous.setPreviousRolename(role.getPreviousRolename());
-            return roleRepository.save(previous);
+            return roleMapper.toModel(roleRepository.save(previous));
         }
         else {
-            return roleRepository.save(role);
+            return roleMapper.toModel(roleRepository.save(roleMapper.toEntity(role)));
         }
     }
 
     @Override
     @Transactional
     public Role updateRole(Role role) {
-        Role previous = roleRepository.findByRolename(role.getPreviousRolename());
+        RoleEntity previous = roleRepository.findByRolename(role.getPreviousRolename());
         roleRepository.delete(previous);
-        return roleRepository.save(role);
+        return roleMapper.toModel(roleRepository.save(roleMapper.toEntity(role)));
     }
 
     @Override
     @Transactional
     public void deleteRole(Long id) {
-        roleRepository.deleteById(id.toString());
+        roleRepository.deleteById(id);
     }
 
     @Override
-    public Optional<Role> getRole(String id) {
-        return roleRepository.findById(id);
+    @Transactional
+    public Optional<Role> getRole(Long id) {
+        return roleRepository.findById(id).map(roleMapper::toModel);
     }
 }

@@ -22,14 +22,21 @@ public class VaadinSecurityServiceInitListener { // implements VaadinServiceInit
         event.getSource().addUIInitListener(uiInitEvent -> {
             uiInitEvent.getUI().addBeforeEnterListener(enterEvent -> {
 
+                String path = enterEvent.getLocation().getPath();
+                boolean publicRoute = path.endsWith("login")
+                        || enterEvent.getLocation().getPath().endsWith("logout")
+                        || enterEvent.getLocation().getPath().endsWith("access-denied")
+                        || path.endsWith("users/confirm-email");
+
                 if (!accessChecker.hasAccess(enterEvent.getNavigationTarget())) {
                     enterEvent.rerouteTo(AccessDeniedView.class); // Redirect to access denied if user lacks permission
+                    return;
                 }
 
-                if (!enterEvent.getLocation().getPath().endsWith("login") && !enterEvent.getLocation().getPath().endsWith("logout")) {
+                if (!publicRoute) {
                     SecurityIdentity currentIdentity = identityProvider.get();
                     if (currentIdentity == null || currentIdentity.isAnonymous()) {
-                        enterEvent.rerouteTo(AccessDeniedView.class); // Redirect to access denied if user lacks permission
+                        enterEvent.rerouteTo(AccessDeniedView.class);
                     }
                 }
 
@@ -44,11 +51,6 @@ public class VaadinSecurityServiceInitListener { // implements VaadinServiceInit
             // DependencyFilter to add/remove/change dependencies sent to
             // the client
             return dependencies;
-        });
-
-        event.addRequestHandler((session, request, response) -> {
-            // RequestHandler to change how responses are handled
-            return false;
         });
     }
 }

@@ -1,9 +1,8 @@
 package cl.dsoto.resources;
 
 
-import cl.dsoto.entities.Role;
+import cl.dsoto.model.Role;
 import cl.dsoto.services.RoleService;
-import cl.dsoto.services.impl.DefaultRoleService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;

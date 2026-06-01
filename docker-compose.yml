@@ -1,17 +1,33 @@
 version: '3.8'
 services:
   token-svc:
-    #image: dpe-admin:latest
     build:
-      context: .
-      dockerfile: src/main/docker/Dockerfile.jvm
+      context: target/quarkus-app
+      dockerfile: ${PWD}/src/main/docker/Dockerfile.local
     container_name: container_token-svc
     ports:
       - "9091:8080"
       - "8010:8000"
     environment:
+      QUARKUS_PROFILE: docker
       JAVA_DEBUG: "true"
       JAVA_DEBUG_PORT: "*:8000"
       JWT_ISSUER: ${JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-identity-svc}
+      AUTH_SESSION_ENCRYPTION_KEY: ${AUTH_SESSION_ENCRYPTION_KEY:-docker-only-change-me-32-chars!!}
+      IDENTITY_SEED_ENABLED: ${IDENTITY_SEED_ENABLED:-true}
+      MAIL_HOST: mailpit
+      MAIL_PORT: 1025
+      MAIL_FROM: no-reply@token-svc.local
+      MAIL_MOCK: "false"
     volumes:
       - ${PWD}/db/accounts.db:/deployments/accounts.db
+    depends_on:
+      - mailpit
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: container_mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"

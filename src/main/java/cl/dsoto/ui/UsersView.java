@@ -1,7 +1,8 @@
 package cl.dsoto.ui;
 
-import cl.dsoto.entities.Role;
-import cl.dsoto.entities.User;
+import cl.dsoto.model.Role;
+import cl.dsoto.model.User;
+import cl.dsoto.model.UserStatus;
 import cl.dsoto.services.RoleService;
 import cl.dsoto.services.UserService;
 import com.vaadin.flow.component.Component;
@@ -16,6 +17,10 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.ClientCallable;
+import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
@@ -32,12 +37,11 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.inject.Inject;
 
 import java.util.List;
-
-import static java.util.Collections.EMPTY_SET;
+import java.util.Set;
 
 @Route(value = "users", layout = MainView.class)
 @RolesAllowed({"ADMIN"})
-public class UsersView extends VerticalLayout { // implements BeforeEnterObserver {
+public class UsersView extends VerticalLayout {
 
     @Inject
     private UserService userService;
@@ -45,21 +49,105 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
     @Inject
     private RoleService roleService;
 
-    @PostConstruct
-    private void init() {
+    private Grid.Column<User> passwordColumn;
+    private Grid.Column<User> statusColumn;
+    private Grid.Column<User> rolesColumn;
+    private Grid.Column<User> detailsColumn;
 
+    @PostConstruct
+    void init() {
+        configureView();
+
+        TextField searchField = createSearchField();
+        Button newUser = createNewUserButton();
+        Grid<User> grid = createGrid(searchField, newUser);
+
+        add(createHeading(), createToolbar(searchField, newUser), grid);
+        expand(grid);
+        addAttachListener(event -> event.getUI().getPage().executeJs(
+                "const view = $0;" +
+                        "const update = () => view.$server.setMobileLayout(window.innerWidth < 720);" +
+                        "update();" +
+                        "if (!view.__identityResizeHandler) {" +
+                        "  view.__identityResizeHandler = update;" +
+                        "  window.addEventListener('resize', update);" +
+                        "}",
+                getElement()));
+        addDetachListener(event -> event.getUI().getPage().executeJs(
+                "const view = $0;" +
+                        "if (view.__identityResizeHandler) {" +
+                        "  window.removeEventListener('resize', view.__identityResizeHandler);" +
+                        "  delete view.__identityResizeHandler;" +
+                        "}",
+                getElement()));
+    }
+
+    @ClientCallable
+    public void setMobileLayout(boolean mobile) {
+        if (passwordColumn == null || statusColumn == null || rolesColumn == null || detailsColumn == null) {
+            return;
+        }
+        passwordColumn.setVisible(!mobile);
+        statusColumn.setVisible(!mobile);
+        rolesColumn.setVisible(!mobile);
+        detailsColumn.setVisible(mobile);
+    }
+
+    private void configureView() {
+        addClassNames("alta-page", "alta-list-page");
+        setSizeFull();
+        setPadding(true);
+        setSpacing(true);
+        getStyle().set("gap", "var(--lumo-space-m)");
+    }
+
+    private VerticalLayout createHeading() {
+        H1 title = new H1("Users");
+        title.addClassNames("m-0");
+        title.getStyle()
+                .set("font-size", "var(--lumo-font-size-xl)")
+                .set("font-weight", "600");
+
+        Paragraph description = new Paragraph("Review accounts, update passwords, and assign roles.");
+        description.addClassNames("m-0", "text-secondary");
+
+        VerticalLayout heading = new VerticalLayout(title, description);
+        heading.addClassName("alta-page-heading");
+        heading.setPadding(false);
+        heading.setSpacing(false);
+        return heading;
+    }
+
+    private HorizontalLayout createToolbar(TextField searchField, Button newUser) {
+        HorizontalLayout toolbar = new HorizontalLayout(searchField, newUser);
+        toolbar.addClassName("alta-toolbar");
+        toolbar.setWidthFull();
+        toolbar.setDefaultVerticalComponentAlignment(FlexComponent.Alignment.END);
+        toolbar.expand(searchField);
+        return toolbar;
+    }
+
+    private TextField createSearchField() {
         TextField searchField = new TextField();
-        searchField.setWidth("100%");
+        searchField.addClassName("alta-search-field");
+        searchField.setWidthFull();
         searchField.setPlaceholder("Search");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
-        searchField.setValueChangeMode(ValueChangeMode.EAGER.EAGER);
+        searchField.setValueChangeMode(ValueChangeMode.EAGER);
+        searchField.setClearButtonVisible(true);
+        return searchField;
+    }
 
-        Button newUser = new Button("New User");
+    private Button createNewUserButton() {
+        Button newUser = new Button("New user", VaadinIcon.PLUS.create());
+        newUser.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        return newUser;
+    }
 
-        HorizontalLayout horizontalLayout = new HorizontalLayout(searchField, newUser);
-        horizontalLayout.getStyle().set("max-width","700px");
-
+    private Grid<User> createGrid(TextField searchField, Button newUser) {
         Grid<User> grid = new Grid<>(User.class, false);
+        grid.addClassName("alta-grid");
+        grid.setSizeFull();
         grid.setItems(userService.getAllUsers());
         Editor<User> editor = grid.getEditor();
 
@@ -73,8 +161,8 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
             if (searchTerm.isEmpty())
                 return true;
 
-            return matchesTerm(user.getUsername(),
-                    searchTerm);
+            return matchesTerm(user.getUsername(), searchTerm)
+                    || matchesTerm(getStatusLabel(user), searchTerm);
         });
 
         Grid.Column<User> removeColumn = grid.addComponentColumn(user -> {
@@ -87,25 +175,38 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
                 }
                 Notification.show("User deleted");
             });
-            deleteButton.addClassName("delete-button");
+            deleteButton.addClassNames("alta-action-button", "delete-button");
+            deleteButton.addThemeVariants(ButtonVariant.LUMO_ICON, ButtonVariant.LUMO_ERROR);
+            deleteButton.getElement().setAttribute("title", "Delete user");
             return deleteButton;
-        }).setWidth("80px").setFlexGrow(0);
+        }).setHeader("").setWidth("64px").setFlexGrow(0);
 
         Grid.Column<User> usernameColumn = grid
                 .addColumn(User::getUsername)
                 .setHeader("Username")
-                .setAutoWidth(true).setFlexGrow(0);
-        Grid.Column<User> passwordColumn = grid
+                .setWidth("0").setFlexGrow(1);
+        passwordColumn = grid
                 .addColumn(User::getPassword)
                 .setRenderer(createUserRenderer())
-                .setAutoWidth(true)
-                .setHeader("Password");
-        Grid.Column<User> rolesColumn = grid
+                .setHeader("Password")
+                .setWidth("0").setFlexGrow(1);
+        statusColumn = grid
+                .addColumn(this::getStatusLabel)
+                .setHeader("Status")
+                .setWidth("0").setFlexGrow(1);
+        rolesColumn = grid
                 .addColumn(User::getRoles)
-                .setWidth("250px")
-                .setHeader("Roles");
+                .setHeader("Roles")
+                .setWidth("0").setFlexGrow(1);
+        detailsColumn = grid.addColumn(user -> getStatusLabel(user) + " - " + user.getRoles())
+                .setHeader("Details")
+                .setWidth("0").setFlexGrow(1);
+        detailsColumn.setVisible(false);
         Grid.Column<User> editColumn = grid.addComponentColumn(person -> {
-            Button editButton = new Button("Edit");
+            Button editButton = new Button(VaadinIcon.PENCIL.create());
+            editButton.addClassName("alta-action-button");
+            editButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+            editButton.getElement().setAttribute("title", "Edit user");
             editButton.addClickListener(e -> {
                 if (editor.isOpen()) {
                     editor.cancel();
@@ -113,7 +214,7 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
                 grid.getEditor().editItem(person);
             });
             return editButton;
-        }).setWidth("150px").setFlexGrow(0);
+        }).setHeader("Actions").setWidth("88px").setFlexGrow(0);
 
         Binder<User> binder = new Binder<>(User.class);
         editor.setBinder(binder);
@@ -143,7 +244,7 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
                 .bind(User::getRoles, User::setRoles);
         rolesColumn.setEditorComponent(rolesField);
 
-        Button saveButton = new Button("Save", e -> {
+        Button saveButton = new Button(VaadinIcon.CHECK.create(), e -> {
             if (usernameField.isInvalid() || passwordField.isEmpty() || passwordField.isInvalid() ||
                     rolesField.isEmpty() || rolesField.isInvalid()) {
                 showErrorNotification("There are invalid fields. Please complete all required fields");
@@ -158,19 +259,24 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
             editor.save();
             //editor.closeEditor();
         });
-        Button cancelButton = new Button(VaadinIcon.CLOSE.create(),
-                e -> editor.cancel());
-        cancelButton.addThemeVariants(ButtonVariant.LUMO_ICON,
-                ButtonVariant.LUMO_ERROR);
+        saveButton.addClassName("alta-action-button");
+        saveButton.addThemeVariants(ButtonVariant.LUMO_ICON);
+        saveButton.getElement().setAttribute("title", "Save user");
+
+        Button cancelButton = new Button(VaadinIcon.CLOSE.create(), e -> editor.cancel());
+        cancelButton.addClassName("alta-action-button");
+        cancelButton.addThemeVariants(ButtonVariant.LUMO_ICON, ButtonVariant.LUMO_ERROR);
+        cancelButton.getElement().setAttribute("title", "Cancel edit");
         HorizontalLayout actions = new HorizontalLayout(saveButton,
                 cancelButton);
+        actions.addClassName("alta-grid-actions");
         actions.setPadding(false);
         editColumn.setEditorComponent(actions);
 
         editor.addCancelListener(e -> {
             usernameField.setValue("");
             passwordField.setValue("");
-            rolesField.setValue(EMPTY_SET);
+            rolesField.setValue(Set.of());
         });
 
         // Listener para cuando se cierra el editor
@@ -182,6 +288,7 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
         newUser.addClickListener(e -> {
             grid.getSelectionModel().deselectAll();
             User user = new User();
+            user.setStatus(UserStatus.PENDING);
             List<User> users = userService.getAllUsers();
             users.add(user);
             grid.setItems(users);
@@ -189,11 +296,7 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
             editor.editItem(user);
         });
 
-        getThemeList().clear();
-        getThemeList().add("spacing-s");
-        add(horizontalLayout, grid);
-
-        getStyle().set("max-width", "1000px");
+        return grid;
     }
 
     private static Renderer<User> createUserRenderer() {
@@ -209,11 +312,20 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
     }
 
     public UsersView() {
-
     }
 
     private boolean matchesTerm(String value, String searchTerm) {
+        if (value == null) {
+            return false;
+        }
         return value.toLowerCase().contains(searchTerm.toLowerCase());
+    }
+
+    private String getStatusLabel(User user) {
+        if (user == null || user.getStatus() == null) {
+            return UserStatus.ACTIVE.name();
+        }
+        return user.getStatus().name();
     }
 
     public void showErrorNotification(String message) {
@@ -281,16 +393,5 @@ public class UsersView extends VerticalLayout { // implements BeforeEnterObserve
         // Muestra la notificación
         notification.open();
     }
-
-    /*
-    @Override
-    public void beforeEnter(BeforeEnterEvent event) {
-        SecurityIdentity securityIdentity = (SecurityIdentity) VaadinService.getCurrentRequest().getWrappedSession().getAttribute("securityIdentity");
-
-        if (!securityIdentity.getRoles().contains("ADMIN")) {
-            event.rerouteTo(LoginView.class);
-        }
-    }
-    */
 
 }

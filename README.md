@@ -1,6 +1,9 @@
 # token-svc
-Token-Svc can be used to authorize access to resources in a decoupled and reusable manner within a micro-service architecture. 
-This tool allows to manage principals and levels of access for each of the resources in the micro-service environment.
+Token-Svc is a proof of concept for identity, JWT issuance, a Vaadin administration UI, and email confirmation in Quarkus.
+
+The current scope is single realm, single audience, and single client. `JWT_ISSUER` identifies the realm and `JWT_AUDIENCE` identifies the only supported audience. Roles are internal to this service, not reusable application roles for a broader microservice ecosystem.
+
+See [docs/scope.md](docs/scope.md) for the project scope and [docs/onboarding.md](docs/onboarding.md) for notes about the onboarding flow and service boundaries.
 
 ## Running the Application
 
@@ -24,6 +27,22 @@ mvn clean install
 
 # Run the application in dev mode
 mvn quarkus:dev
+
+### Local Email Preview
+
+Development mode sends email through Mailpit instead of using a mock mailbox. Start Mailpit before creating users:
+
+```bash
+docker compose up mailpit
+```
+
+Open the Mailpit UI at:
+
+```text
+http://localhost:8025
+```
+
+The application sends SMTP traffic to `localhost:1025` in the dev profile. Tests still use `quarkus.mailer.mock=true`.
 
 ### 2. Running in Container (Production Profile)
 

@@ -1,0 +1,488 @@
+html {
+  --lumo-font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --lumo-base-color: #ffffff;
+  --lumo-primary-color: #0572ce;
+  --lumo-primary-text-color: #005da8;
+  --lumo-primary-color-10pct: rgba(5, 114, 206, 0.10);
+  --lumo-primary-color-50pct: rgba(5, 114, 206, 0.50);
+  --lumo-body-text-color: #1f2937;
+  --lumo-secondary-text-color: rgba(31, 41, 55, 0.68);
+  --lumo-tertiary-text-color: rgba(31, 41, 55, 0.50);
+  --lumo-disabled-text-color: rgba(31, 41, 55, 0.36);
+  --lumo-contrast-5pct: #f6f8fa;
+  --lumo-contrast-10pct: #e8edf2;
+  --lumo-contrast-20pct: #d2dbe4;
+  --lumo-contrast-30pct: #b4c1cd;
+  --lumo-contrast-60pct: #5b6979;
+  --lumo-contrast-80pct: #334155;
+  --lumo-border-radius-s: 3px;
+  --lumo-border-radius-m: 4px;
+  --lumo-border-radius-l: 6px;
+  --lumo-box-shadow-xs: 0 1px 2px rgba(31, 41, 55, 0.06);
+  --lumo-box-shadow-s: 0 3px 8px rgba(31, 41, 55, 0.09);
+  --alta-accent-color: #4f7d1f;
+  --alta-warning-color: #b36b00;
+  --alta-surface-border: #d6dde5;
+  --alta-app-background: #f4f6f8;
+  --alta-shell-background: #ffffff;
+  --alta-drawer-background: #fbfcfd;
+  --alta-header-background: #eef3f7;
+  --alta-hover-background: #edf5fc;
+  background: var(--alta-app-background);
+  color: var(--lumo-body-text-color);
+  font-family: var(--lumo-font-family);
+  font-size: 14px;
+}
+
+body {
+  background: var(--alta-app-background);
+  font-family: var(--lumo-font-family);
+}
+
+html[theme~="dark"] {
+  --lumo-base-color: #111827;
+  --lumo-primary-color: #4aa3ff;
+  --lumo-primary-text-color: #8cc8ff;
+  --lumo-primary-color-10pct: rgba(74, 163, 255, 0.14);
+  --lumo-primary-color-50pct: rgba(74, 163, 255, 0.50);
+  --lumo-body-text-color: #f3f4f6;
+  --lumo-secondary-text-color: rgba(243, 244, 246, 0.72);
+  --lumo-tertiary-text-color: rgba(243, 244, 246, 0.54);
+  --lumo-disabled-text-color: rgba(243, 244, 246, 0.36);
+  --lumo-contrast-5pct: #172033;
+  --lumo-contrast-10pct: #223047;
+  --lumo-contrast-20pct: #33435c;
+  --lumo-contrast-30pct: #495a73;
+  --lumo-contrast-60pct: #9aa8ba;
+  --lumo-contrast-80pct: #d4dbe5;
+  --lumo-box-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.26);
+  --lumo-box-shadow-s: 0 3px 8px rgba(0, 0, 0, 0.34);
+  --alta-accent-color: #9abf55;
+  --alta-warning-color: #f2b44d;
+  --alta-surface-border: #2e3b4f;
+  --alta-app-background: #0f1624;
+  --alta-shell-background: #141c2a;
+  --alta-drawer-background: #111827;
+  --alta-header-background: #1c2637;
+  --alta-hover-background: #182b42;
+}
+
+html[theme~="dark"] body {
+  background: var(--alta-app-background);
+}
+
+.alta-shell-topbar {
+  background: var(--alta-shell-background);
+  border-bottom: 1px solid var(--alta-surface-border);
+  box-shadow: 0 1px 2px rgba(31, 41, 55, 0.04);
+  gap: var(--lumo-space-s);
+  min-height: 56px;
+  padding-inline-end: var(--lumo-space-l);
+}
+
+.alta-shell-toggle {
+  color: var(--lumo-contrast-60pct);
+  margin-inline-end: var(--lumo-space-xs);
+}
+
+.alta-shell-brand {
+  align-items: center;
+  gap: var(--lumo-space-xs);
+}
+
+.alta-shell-logo {
+  display: block;
+  height: 34px;
+  object-fit: contain;
+  width: 166px;
+}
+
+html[theme~="dark"] .alta-shell-logo {
+  filter: invert(1) brightness(1.45);
+}
+
+.alta-shell-drawer {
+  background: var(--alta-drawer-background);
+  border-right: 1px solid var(--alta-surface-border);
+  height: 100%;
+}
+
+.alta-shell-nav {
+  --vaadin-side-nav-item-border-radius: 4px;
+  --vaadin-side-nav-item-padding: 0.45rem 0.75rem;
+  color: var(--lumo-body-text-color);
+  font-family: var(--lumo-font-family);
+  font-size: 15px;
+}
+
+.alta-shell-nav vaadin-side-nav-item::part(link) {
+  border-left: 3px solid transparent;
+  font-family: var(--lumo-font-family);
+  font-size: 15px;
+  min-height: 38px;
+}
+
+.alta-shell-nav vaadin-side-nav-item[current]::part(link) {
+  background: var(--alta-hover-background);
+  border-left-color: var(--lumo-primary-color);
+  color: var(--lumo-primary-text-color);
+  font-weight: 600;
+}
+
+.alta-user-menu vaadin-menu-bar-button {
+  color: var(--lumo-body-text-color);
+  font-weight: 500;
+  padding-inline: var(--lumo-space-s);
+}
+
+.alta-user-menu {
+  margin-inline-end: var(--lumo-space-s);
+}
+
+.alta-theme-toggle {
+  --lumo-button-size: 34px;
+  color: var(--lumo-contrast-60pct);
+  margin-inline-end: var(--lumo-space-xs);
+}
+
+.alta-theme-toggle:hover {
+  background: var(--lumo-primary-color-10pct);
+  color: var(--lumo-primary-text-color);
+}
+
+.alta-page,
+.login-view {
+  background-image: url("../themes/alta-ui/background-2-light.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  box-sizing: border-box;
+}
+
+html[theme~="dark"] .alta-page,
+html[theme~="dark"] .login-view {
+  background-image: url("../themes/alta-ui/background-2-dark.png");
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+.alta-page {
+  padding: var(--lumo-space-l);
+  overflow: auto;
+}
+
+.login-view {
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--lumo-space-l);
+  position: relative;
+}
+
+.alta-page-heading {
+  border-bottom: 1px solid var(--alta-surface-border);
+  gap: var(--lumo-space-xs);
+  padding-bottom: var(--lumo-space-m);
+}
+
+.alta-page-heading h1 {
+  color: var(--lumo-body-text-color);
+  letter-spacing: 0;
+}
+
+.alta-card-row {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.alta-card-row > * {
+  flex: 1 1 280px;
+}
+
+.alta-card,
+.alta-panel {
+  background: var(--lumo-base-color);
+  border: 1px solid var(--alta-surface-border);
+  border-radius: 6px;
+  box-shadow: var(--lumo-box-shadow-xs);
+  box-sizing: border-box;
+}
+
+.alta-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-s);
+  min-width: 240px;
+  padding: var(--lumo-space-l);
+  width: 100%;
+}
+
+.alta-metric-card {
+  border-top: 3px solid var(--lumo-primary-color);
+}
+
+.alta-action-card {
+  border-top: 3px solid var(--alta-accent-color);
+}
+
+.alta-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--lumo-space-m);
+  max-width: 420px;
+  padding: var(--lumo-space-xl);
+  width: min(100%, 420px);
+}
+
+.alta-login-panel {
+  border-top: 4px solid var(--lumo-primary-color);
+  position: relative;
+}
+
+.alta-login-theme-toggle {
+  margin: 0;
+  position: absolute;
+  right: var(--lumo-space-l);
+  top: var(--lumo-space-l);
+}
+
+.alta-message-panel {
+  border-top: 4px solid var(--alta-warning-color);
+}
+
+.alta-toolbar {
+  background: var(--lumo-base-color);
+  border: 1px solid var(--alta-surface-border);
+  border-radius: 6px;
+  box-shadow: var(--lumo-box-shadow-xs);
+  box-sizing: border-box;
+  padding: var(--lumo-space-m);
+}
+
+.alta-search-field {
+  max-width: 520px;
+}
+
+.alta-grid {
+  border: 1px solid var(--alta-surface-border);
+  border-radius: 6px;
+  font-family: var(--lumo-font-family);
+  box-shadow: var(--lumo-box-shadow-xs);
+  overflow: hidden;
+}
+
+.alta-grid::part(header-cell) {
+  background: var(--alta-header-background);
+  color: var(--lumo-contrast-80pct);
+  font-size: var(--lumo-font-size-s);
+  font-weight: 600;
+  min-height: 38px;
+  text-transform: none;
+}
+
+.alta-grid::part(body-cell) {
+  border-top: 1px solid var(--lumo-contrast-10pct);
+  min-height: 42px;
+}
+
+.alta-grid::part(row):hover {
+  background: #f8fbfd;
+}
+
+html[theme~="dark"] .alta-grid::part(row):hover {
+  background: #162235;
+}
+
+vaadin-button {
+  border-radius: 4px;
+  min-height: 34px;
+}
+
+vaadin-button[theme~="primary"] {
+  box-shadow: none;
+  font-weight: 600;
+}
+
+vaadin-button[theme~="tertiary"] {
+  color: var(--lumo-primary-text-color);
+}
+
+.alta-action-button {
+  --lumo-button-size: 30px;
+  background: var(--lumo-base-color);
+  border: 1px solid #b9c5d0;
+  box-shadow: none;
+  color: var(--lumo-primary-text-color);
+  min-height: 30px;
+  min-width: 30px;
+  padding: 0;
+}
+
+html[theme~="dark"] .alta-action-button {
+  border-color: #526174;
+}
+
+html[theme~="dark"] vaadin-text-field::part(input-field),
+html[theme~="dark"] vaadin-email-field::part(input-field),
+html[theme~="dark"] vaadin-password-field::part(input-field),
+html[theme~="dark"] vaadin-multi-select-combo-box::part(input-field) {
+}
+
+html[theme~="dark"] vaadin-text-field,
+html[theme~="dark"] vaadin-email-field,
+html[theme~="dark"] vaadin-password-field,
+html[theme~="dark"] vaadin-multi-select-combo-box {
+  --vaadin-input-field-background: #182235;
+  --vaadin-input-field-border-color: #3a485e;
+  --vaadin-input-field-hover-highlight: #526174;
+  --vaadin-input-field-value-color: var(--lumo-body-text-color);
+  --vaadin-input-field-placeholder-color: var(--lumo-tertiary-text-color);
+  --vaadin-input-field-icon-color: var(--lumo-secondary-text-color);
+}
+
+html[theme~="dark"] vaadin-text-field::part(input-field)::placeholder,
+html[theme~="dark"] vaadin-email-field::part(input-field)::placeholder,
+html[theme~="dark"] vaadin-password-field::part(input-field)::placeholder {
+}
+
+.alta-action-button:hover {
+  border-color: var(--lumo-primary-color);
+  background: var(--lumo-primary-color-10pct);
+}
+
+.alta-action-button[focused] {
+  border-color: var(--lumo-primary-color);
+  box-shadow: 0 0 0 1px var(--lumo-primary-color-50pct);
+}
+
+.alta-grid-actions {
+  align-items: center;
+  gap: var(--lumo-space-xs);
+}
+
+.delete-button {
+  border-color: rgba(180, 35, 24, 0.45);
+  color: #b42318;
+}
+
+.delete-button:hover {
+  border-color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+}
+
+.alta-action-button[theme~="error"] {
+  border-color: rgba(180, 35, 24, 0.45);
+  color: #b42318;
+}
+
+.alta-action-button[theme~="error"]:hover {
+  border-color: #b42318;
+  background: rgba(180, 35, 24, 0.08);
+}
+
+vaadin-text-field::part(input-field),
+vaadin-email-field::part(input-field),
+vaadin-password-field::part(input-field),
+vaadin-multi-select-combo-box::part(input-field) {
+  background: #ffffff;
+  border: 1px solid var(--alta-surface-border);
+  border-radius: 4px;
+  box-shadow: inset 0 1px 1px rgba(31, 41, 55, 0.04);
+  min-height: 34px;
+}
+
+vaadin-text-field[focused]::part(input-field),
+vaadin-email-field[focused]::part(input-field),
+vaadin-password-field[focused]::part(input-field),
+vaadin-multi-select-combo-box[focused]::part(input-field) {
+  border-color: var(--lumo-primary-color);
+  box-shadow: 0 0 0 1px var(--lumo-primary-color-50pct);
+}
+
+html[theme~="dark"] vaadin-text-field::part(input-field),
+html[theme~="dark"] vaadin-email-field::part(input-field),
+html[theme~="dark"] vaadin-password-field::part(input-field),
+html[theme~="dark"] vaadin-multi-select-combo-box::part(input-field) {
+  background: #182235;
+  background-color: #182235;
+  border-color: #3a485e;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.22);
+  color: var(--lumo-body-text-color);
+}
+
+html[theme~="dark"] vaadin-text-field[focused]::part(input-field),
+html[theme~="dark"] vaadin-email-field[focused]::part(input-field),
+html[theme~="dark"] vaadin-password-field[focused]::part(input-field),
+html[theme~="dark"] vaadin-multi-select-combo-box[focused]::part(input-field) {
+  border-color: var(--lumo-primary-color);
+  box-shadow: 0 0 0 1px var(--lumo-primary-color-50pct);
+}
+
+html[theme~="dark"] vaadin-text-field::part(input-field)::placeholder,
+html[theme~="dark"] vaadin-email-field::part(input-field)::placeholder,
+html[theme~="dark"] vaadin-password-field::part(input-field)::placeholder {
+  color: var(--lumo-tertiary-text-color);
+}
+
+vaadin-login-form {
+  background: transparent;
+  width: 100%;
+}
+
+vaadin-login-form-wrapper {
+  background: transparent;
+}
+
+vaadin-login-form-wrapper::part(form) {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+vaadin-login-form-wrapper::part(form-title) {
+  color: var(--lumo-body-text-color);
+  font-size: var(--lumo-font-size-l);
+  font-weight: 600;
+}
+
+@media (max-width: 700px) {
+  .alta-page {
+    padding: var(--lumo-space-m);
+  }
+
+  .alta-card-row,
+  .alta-toolbar {
+    flex-direction: column;
+  }
+
+  .alta-card-row > *,
+  .alta-toolbar > * {
+    width: 100%;
+  }
+
+  .alta-search-field {
+    max-width: none;
+  }
+
+  .alta-panel {
+    padding: var(--lumo-space-l);
+  }
+
+  .alta-grid::part(header-cell) {
+    min-height: 34px;
+  }
+
+  .alta-grid::part(body-cell) {
+    min-height: 38px;
+  }
+
+  .alta-action-button {
+    --lumo-button-size: 28px;
+    min-height: 28px;
+    min-width: 28px;
+  }
+}

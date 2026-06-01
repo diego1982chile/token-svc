@@ -11,8 +11,10 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 
 @RequestScoped
 public class DefaultConfigService implements ConfigService {
@@ -22,12 +24,31 @@ public class DefaultConfigService implements ConfigService {
 
     @Override
     public PrivateKey getPrivateKey() throws IOException {
-        InputStream inputStream = DefaultCypherService.class.getResourceAsStream(privateKey);
+        return getKeyPair().getPrivate();
+    }
 
-        PEMParser pemParser = new PEMParser(new InputStreamReader(inputStream));
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(new BouncyCastleProvider());
-        Object object = pemParser.readObject();
-        KeyPair kp = converter.getKeyPair((PEMKeyPair) object);
-        return kp.getPrivate();
+    @Override
+    public PublicKey getPublicKey() throws IOException {
+        return getKeyPair().getPublic();
+    }
+
+    private KeyPair getKeyPair() throws IOException {
+        InputStream inputStream = DefaultConfigService.class.getResourceAsStream(privateKey);
+        if (inputStream == null) {
+            throw new IOException("Private key resource not found: " + privateKey);
+        }
+
+        try (inputStream;
+             PEMParser pemParser = new PEMParser(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            Object object = pemParser.readObject();
+            if (!(object instanceof PEMKeyPair)) {
+                String type = object == null ? "empty PEM" : object.getClass().getName();
+                throw new IOException("Unsupported private key format: " + type);
+            }
+
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter()
+                    .setProvider(new BouncyCastleProvider());
+            return converter.getKeyPair((PEMKeyPair) object);
+        }
     }
 }

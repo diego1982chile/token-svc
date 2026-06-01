@@ -7,6 +7,8 @@ import cl.dsoto.entities.UserEntity;
 import cl.dsoto.mappers.UserMapper;
 import cl.dsoto.model.User;
 import cl.dsoto.model.UserStatus;
+import cl.dsoto.onboarding.OnboardingEngine;
+import cl.dsoto.onboarding.model.OnboardingEvent;
 import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.ConfigService;
 import cl.dsoto.services.CypherService;
@@ -47,6 +49,9 @@ public class DefaultUserService implements UserService {
 
     @Inject
     private DomainEventPublisher domainEventPublisher;
+
+    @Inject
+    private OnboardingEngine onboardingEngine;
 
     @ConfigProperty(name = "token.issuer")
     String jwtIssuer;
@@ -94,6 +99,7 @@ public class DefaultUserService implements UserService {
             userEntity.setStatus(UserStatus.PENDING);
 
             User savedUser = userMapper.toModel(userRepository.save(userEntity));
+            onboardingEngine.applyEvent(OnboardingEvent.userRegistered(savedUser.getUsername()));
             sendEmailConfirmation(savedUser.getUsername());
 
             return savedUser;
@@ -117,6 +123,7 @@ public class DefaultUserService implements UserService {
 
             user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
+            onboardingEngine.applyEvent(OnboardingEvent.emailVerified(user.getUsername()));
         } catch (IOException e) {
             throw new IllegalStateException("Unable to load JWT public key", e);
         }

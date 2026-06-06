@@ -62,17 +62,27 @@ The migration is intentionally deferred. When resumed:
   train projection.
 - `token-svc` will publish `USER_REGISTERED` and `EMAIL_VERIFIED` events using
   a versioned, transport-neutral contract.
-- `token-svc` will use a transactional outbox so identity changes and pending
-  events are committed atomically.
-- Events will be published to SNS and consumed from a dedicated SQS queue by
-  `onboarding-svc`.
-- Local development will use LocalStack.
-- The SQS consumer will persist processed event ids for idempotency and use a
-  dead-letter queue for failed messages.
+- The immediate migration path is an internal, cursor-based identity event
+  feed exposed by `token-svc`, not direct REST callbacks.
+- `token-svc` will persist identity events in an append-only event log and
+  expose them through `GET /internal/identity-events?after=<cursor>&limit=<n>`.
+- `onboarding-svc` will poll that feed, persist its source cursor, and process
+  each event idempotently.
+- The previously validated SNS/SQS approach remains a future option if fan-out,
+  durable queueing, DLQ operations, or multiple independent consumers justify
+  the added infrastructure.
 
-REST service-to-service event delivery is not planned as an intermediate step
-because it adds B2B authentication, retry handling, and availability coupling.
-Camel Quarkus is also deferred until KYC, Stripe, or other integrations create
+Direct REST service-to-service event delivery is not planned because it adds
+B2B authentication, retry handling, and availability coupling. The feed-based
+approach is different: `onboarding-svc` pulls an ordered event log with cursor
+and idempotency.
+
+KYC is expected to be an external provider integration owned by
+`onboarding-svc`. Provider callbacks/webhooks should be translated by
+`onboarding-svc` into onboarding events. `token-svc` should remain focused on
+identity, credentials, email confirmation, and JWT issuance.
+
+Camel Quarkus is deferred until KYC, Stripe, or other integrations create
 enough routing complexity to justify it.
 
 The detailed migration order and event envelope are documented in

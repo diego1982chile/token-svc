@@ -150,7 +150,6 @@ public class DefaultUserService implements UserService {
             return new RegistrationResponse(existingRegistrationId.orElseGet(() -> {
                 String registrationId = UUID.randomUUID().toString();
                 onboardingEngine.applyEvent(OnboardingEvent.userRegistered(username, registrationId));
-                appendIdentityEvent(IdentityEventType.USER_REGISTERED, username, registrationId);
                 if (previous.getStatus() == UserStatus.ACTIVE) {
                     onboardingEngine.applyEvent(OnboardingEvent.emailVerified(username));
                 }

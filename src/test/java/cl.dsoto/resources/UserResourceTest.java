@@ -332,8 +332,34 @@ public class UserResourceTest {
                 .path("registrationId");
 
         assertThat(registrationId, notNullValue());
-        assertThat(identityEventLogEntryRepository.findAll().stream()
-                .anyMatch(event -> event.getEventType() == IdentityEventType.EMAIL_VERIFIED), is(false));
+        assertThat(identityEventLogEntryRepository.findAll().isEmpty(), is(true));
+    }
+
+    @Test
+    public void shouldNotAppendIdentityEventWhenExistingPendingUserRegistersAgain() {
+        String email = "pending.retry@example.com";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.PENDING)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "ignored123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED)
+                .body("registrationId", notNullValue());
+
+        assertThat(identityEventLogEntryRepository.findAll().isEmpty(), is(true));
     }
 
     @Test

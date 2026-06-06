@@ -38,22 +38,6 @@ public class IdentityEventLogEntryEntity {
 
     private Instant occurredAt;
 
-    private Instant createdAt;
-
-    public static IdentityEventLogEntryEntity create(
-            String eventId,
-            IdentityEventType eventType,
-            String subject,
-            String registrationId,
-            Instant occurredAt
-    ) {
-        return IdentityEventLogEntryEntity.builder()
-                .eventId(eventId)
-                .eventType(eventType)
-                .subject(subject)
-                .registrationId(registrationId)
-                .occurredAt(occurredAt)
-                .createdAt(Instant.now())
-                .build();
-    }
+    @Builder.Default
+    private Instant createdAt = Instant.now();
 }

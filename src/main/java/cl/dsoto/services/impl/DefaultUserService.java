@@ -273,13 +273,13 @@ public class DefaultUserService implements UserService {
             String subject,
             String registrationId
     ) {
-        identityEventLogEntryRepository.save(IdentityEventLogEntryEntity.create(
-                UUID.randomUUID().toString(),
-                eventType,
-                subject,
-                registrationId,
-                Instant.now()
-        ));
+        identityEventLogEntryRepository.save(IdentityEventLogEntryEntity.builder()
+                .eventId(UUID.randomUUID().toString())
+                .eventType(eventType)
+                .subject(subject)
+                .registrationId(registrationId)
+                .occurredAt(Instant.now())
+                .build());
     }
 
     private String buildConfirmationUrl(String token) {

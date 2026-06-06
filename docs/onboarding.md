@@ -102,6 +102,19 @@ The immediate feed model should use `IdentityEventFeedPage` and
 belongs to the validated SNS/SQS prototype and should not be treated as the
 central HTTP feed contract.
 
+Next implementation steps in `token-svc`:
+
+1. Add append-only `IdentityEventLogEntry` persistence with `sequence`,
+   `eventId`, `eventType`, `subject`, `occurredAt`, and optional
+   `registrationId`.
+2. Add feed response models `IdentityEventFeedItem` and
+   `IdentityEventFeedPage`.
+3. Expose `GET /internal/identity-events?after=<cursor>&limit=<n>`.
+4. Write `USER_REGISTERED` and `EMAIL_VERIFIED` to the event log while keeping
+   the existing local onboarding engine calls temporarily.
+5. After `onboarding-svc` consumes the feed end-to-end, remove direct
+   onboarding state mutation from `token-svc`.
+
 ## Email Confirmation Event
 
 The current implementation publishes `EmailConfirmationRequested` through CDI async events. The local handler sends the email with Quarkus Mailer, but the event contract is intentionally transport-neutral so it can later be sent through Kafka, RabbitMQ, SQS, or an external email service.

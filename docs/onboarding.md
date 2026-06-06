@@ -115,6 +115,13 @@ Next implementation steps in `token-svc`:
 5. After `onboarding-svc` consumes the feed end-to-end, remove direct
    onboarding state mutation from `token-svc`.
 
+Event emission must be selective. The identity event log is not an audit log
+for every user change. Only explicit user-facing onboarding flows should append
+events, initially public registration (`USER_REGISTERED`) and user email
+confirmation (`EMAIL_VERIFIED`). Administrative actions such as role changes,
+manual activation/deactivation, support edits, migrations, or internal user
+updates must not emit onboarding identity events by default.
+
 ## Email Confirmation Event
 
 The current implementation publishes `EmailConfirmationRequested` through CDI async events. The local handler sends the email with Quarkus Mailer, but the event contract is intentionally transport-neutral so it can later be sent through Kafka, RabbitMQ, SQS, or an external email service.

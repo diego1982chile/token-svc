@@ -68,9 +68,8 @@ The migration is intentionally deferred. When resumed:
   expose them through `GET /internal/identity-events?after=<cursor>&limit=<n>`.
 - `onboarding-svc` will poll that feed, persist its source cursor, and process
   each event idempotently.
-- The feed is identity-specific. Future KYC or billing integrations should not
-  be folded into `token-svc`; they should enter `onboarding-svc` through their
-  own adapters, usually provider webhooks.
+- The feed is identity-specific. Future KYC, plan, or billing integrations
+  should not be folded into `token-svc`.
 - The previously validated SNS/SQS approach remains a future option if fan-out,
   durable queueing, DLQ operations, or multiple independent consumers justify
   the added infrastructure.
@@ -84,6 +83,13 @@ KYC is expected to be an external provider integration owned by
 `onboarding-svc`. Provider callbacks/webhooks should be translated by
 `onboarding-svc` into onboarding events. `token-svc` should remain focused on
 identity, credentials, email confirmation, and JWT issuance.
+
+Subscription plan and billing ownership is separate. `onboarding-svc` may own a
+temporary plan-selection catalog while the product is simple, but payment
+provider callbacks should enter the service that owns subscriptions. If a
+future `subscription-svc` exists, `onboarding-svc` should consume subscription
+outcomes from that service rather than handling payment provider webhooks
+directly.
 
 Camel Quarkus is deferred until KYC, Stripe, or other integrations create
 enough routing complexity to justify it.

@@ -1,7 +1,7 @@
-package cl.dsoto.onboarding.rules;
+package cl.dsoto.services.impl;
 
-import cl.dsoto.onboarding.model.OnboardingEventType;
-import cl.dsoto.onboarding.model.OnboardingState;
+import cl.dsoto.events.OnboardingEventType;
+import cl.dsoto.model.OnboardingState;
 import org.jeasy.rules.annotation.Action;
 import org.jeasy.rules.annotation.Condition;
 import org.jeasy.rules.annotation.Fact;

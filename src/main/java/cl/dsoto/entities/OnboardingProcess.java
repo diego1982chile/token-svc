@@ -1,6 +1,6 @@
-package cl.dsoto.onboarding.entities;
+package cl.dsoto.entities;
 
-import cl.dsoto.onboarding.model.OnboardingState;
+import cl.dsoto.model.OnboardingState;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -23,6 +23,8 @@ public class OnboardingProcess {
 
     @Id
     private String username;
+
+    private String registrationId;
 
     @Enumerated(EnumType.STRING)
     private OnboardingState currentState;

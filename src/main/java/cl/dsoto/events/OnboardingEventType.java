@@ -1,4 +1,4 @@
-package cl.dsoto.onboarding.model;
+package cl.dsoto.events;
 
 public enum OnboardingEventType {
     USER_REGISTERED,

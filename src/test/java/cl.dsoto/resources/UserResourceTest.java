@@ -4,6 +4,9 @@ import cl.dsoto.entities.RoleEntity;
 import cl.dsoto.entities.UserEntity;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.UserStatus;
+import cl.dsoto.model.OnboardingState;
+import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.ConfigService;
@@ -30,6 +33,7 @@ import java.io.IOException;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -38,6 +42,7 @@ import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -53,6 +58,9 @@ public class UserResourceTest {
 
     @Inject
     private RoleRepository roleRepository;
+
+    @Inject
+    private OnboardingProcessRepository onboardingProcessRepository;
 
     @InjectMock
     private ConfigService configService;
@@ -84,6 +92,7 @@ public class UserResourceTest {
         KeyPair pair = generator.generateKeyPair();
 
         Mockito.when(configService.getPrivateKey()).thenReturn(pair.getPrivate());
+        Mockito.when(configService.getPublicKey()).thenReturn(pair.getPublic());
     }
 
     private RoleEntity getOrCreateRole(String rolename) {
@@ -121,7 +130,7 @@ public class UserResourceTest {
         setField(resource, "cypherService", cypherService);
         setField(resource, "userService", userService);
         setField(resource, "jwtIssuer", "https://apis.internal.dsoto.cl");
-        setField(resource, "jwtAudience", "identity-svc");
+        setField(resource, "jwtAudiences", List.of("identity-svc", "onboarding-svc"));
 
         Mockito.when(userService.isUserActive("admin")).thenReturn(true);
         Mockito.when(request.getUserPrincipal()).thenReturn(null);
@@ -129,7 +138,12 @@ public class UserResourceTest {
         Mockito.when(request.isUserInRole("USER")).thenReturn(true);
         Mockito.when(request.getSession(false)).thenReturn(session);
         Mockito.when(session.getId()).thenReturn("session-id");
-        Mockito.when(cypherService.generateJWT(any(), eq("admin"), anyList(), eq("https://apis.internal.dsoto.cl"), eq("identity-svc")))
+        Mockito.when(cypherService.generateJWT(
+                        any(),
+                        eq("admin"),
+                        anyList(),
+                        eq("https://apis.internal.dsoto.cl"),
+                        eq(List.of("identity-svc", "onboarding-svc"))))
                 .thenReturn("jwt-token");
 
         Response response = resource.login("admin", "admin", securityContext, request);
@@ -150,6 +164,199 @@ public class UserResourceTest {
                 .get("/api/users")
                 .then()
                 .statusCode(HttpStatus.SC_MOVED_TEMPORARILY);
+    }
+
+    @Test
+    public void shouldAccessPublicOnboardingTrainWhenAnonymous() {
+        given()
+                .when()
+                .get("/api/onboarding/public/train")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("username", nullValue())
+                .body("currentState", nullValue())
+                .body("currentStep", is("REGISTRATION"))
+                .body("steps[0].key", is("REGISTRATION"))
+                .body("steps[0].status", is("CURRENT"))
+                .body("steps[1].key", is("IDENTITY_CHECK"))
+                .body("steps[1].status", is("PENDING"))
+                .body("steps[2].key", is("PLAN_SELECTION"))
+                .body("steps[2].status", is("PENDING"));
+    }
+
+    @Test
+    public void shouldExposePublicJwksWhenAnonymous() {
+        given()
+                .when()
+                .get("/api/.well-known/jwks.json")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("keys[0].kty", is("RSA"))
+                .body("keys[0].use", is("sig"))
+                .body("keys[0].alg", is("RS256"))
+                .body("keys[0].kid", is("apisKey"))
+                .body("keys[0].n", notNullValue())
+                .body("keys[0].e", notNullValue());
+    }
+
+    @Test
+    public void shouldRegisterUserWhenAnonymous() {
+        String email = "new.user@example.com";
+
+        String registrationId = given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED)
+                .body("registrationId", notNullValue())
+                .extract()
+                .path("registrationId");
+
+        UserEntity user = userRepository.findByUsername(email);
+
+        assertThat(user.getStatus(), is(UserStatus.PENDING));
+        assertThat(user.getRoles().stream().anyMatch(role -> "USER".equals(role.getRolename())), is(true));
+        assertThat(onboardingProcessRepository.findById(email).orElseThrow().getRegistrationId(), is(registrationId));
+    }
+
+    @Test
+    public void shouldRejectInvalidAnonymousRegistration() {
+        given()
+                .contentType("application/json")
+                .body(Map.of("email", "missing.password@example.com"))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_BAD_REQUEST);
+    }
+
+    @Test
+    public void shouldReturnPendingConfirmationStatusByRegistrationId() {
+        String email = "pending.confirmation@example.com";
+        String registrationId = "registration-pending-123";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.PENDING)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+        onboardingProcessRepository.save(OnboardingProcess.builder()
+                .username(email)
+                .registrationId(registrationId)
+                .currentState(OnboardingState.REGISTERED)
+                .build());
+
+        given()
+                .when()
+                .get("/api/onboarding/public/" + registrationId + "/status")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("confirmed", is(false))
+                .body("train.username", nullValue())
+                .body("train.currentState", is("REGISTERED"))
+                .body("train.currentStep", is("REGISTRATION"));
+    }
+
+    @Test
+    public void shouldReturnNextTrainByRegistrationIdWhenUserEmailIsConfirmed() {
+        String email = "confirmed.user@example.com";
+        String registrationId = "registration-confirmed-123";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.ACTIVE)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+        onboardingProcessRepository.save(OnboardingProcess.builder()
+                .username(email)
+                .registrationId(registrationId)
+                .currentState(OnboardingState.EMAIL_VERIFIED)
+                .build());
+
+        given()
+                .when()
+                .get("/api/onboarding/public/" + registrationId + "/status")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("confirmed", is(true))
+                .body("train.username", nullValue())
+                .body("train.currentState", is("EMAIL_VERIFIED"))
+                .body("train.currentStep", is("IDENTITY_CHECK"))
+                .body("train.steps[0].status", is("COMPLETED"))
+                .body("train.steps[1].status", is("CURRENT"))
+                .body("train.steps[2].status", is("PENDING"));
+    }
+
+    @Test
+    public void shouldCreateConfirmedRegistrationForExistingActiveUserWithoutOnboarding() {
+        String email = "active.without.onboarding@example.com";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.ACTIVE)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+
+        String registrationId = given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "ignored123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED)
+                .body("registrationId", notNullValue())
+                .extract()
+                .path("registrationId");
+
+        given()
+                .when()
+                .get("/api/onboarding/public/" + registrationId + "/status")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("confirmed", is(true))
+                .body("train.currentState", is("EMAIL_VERIFIED"))
+                .body("train.currentStep", is("IDENTITY_CHECK"));
+    }
+
+    @Test
+    public void shouldDeleteOnboardingProcessWhenUserIsDeleted() {
+        String email = "delete.with.onboarding@example.com";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.ACTIVE)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+        onboardingProcessRepository.save(OnboardingProcess.builder()
+                .username(email)
+                .currentState(OnboardingState.EMAIL_VERIFIED)
+                .build());
+
+        given()
+                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
+                .when()
+                .delete("/api/users/delete/" + email)
+                .then()
+                .statusCode(HttpStatus.SC_OK);
+
+        assertThat(userRepository.findByUsername(email), nullValue());
+        assertThat(onboardingProcessRepository.findById(email).isEmpty(), is(true));
     }
 
     @Test

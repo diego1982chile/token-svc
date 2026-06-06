@@ -35,9 +35,9 @@ public class DefaultCypherService implements CypherService {
     private static final String EMAIL_CONFIRMATION_TYPE = "email-confirmation";
 
     @Override
-    public String generateJWT(PrivateKey key, String subject, List<String> groups, String issuer, String audience) {
+    public String generateJWT(PrivateKey key, String subject, List<String> groups, String issuer, List<String> audiences) {
         MPJWTToken token = new MPJWTToken();
-        token.setAud(audience);
+        token.setAud(audiences);
         token.setIss(issuer);  // Must match the expected issues configuration values
         token.setJti(UUID.randomUUID().toString());
 
@@ -55,7 +55,7 @@ public class DefaultCypherService implements CypherService {
     @Override
     public String generateEmailConfirmationJWT(PrivateKey key, String email, String issuer, String audience) {
         MPJWTToken token = new MPJWTToken();
-        token.setAud(audience);
+        token.setAud(List.of(audience));
         token.setIss(issuer);
         token.setJti(UUID.randomUUID().toString());
         token.setSub(email);

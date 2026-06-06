@@ -16,7 +16,7 @@ import java.util.Map;
 public class MPJWTToken {
 
     private String iss;
-    private String aud;
+    private List<String> aud = new ArrayList<>();
     private String jti;
     private Long exp;
     private Long iat;
@@ -35,11 +35,11 @@ public class MPJWTToken {
         this.iss = iss;
     }
 
-    public String getAud() {
+    public List<String> getAud() {
         return aud;
     }
 
-    public void setAud(String aud) {
+    public void setAud(List<String> aud) {
         this.aud = aud;
     }
 
@@ -126,7 +126,11 @@ public class MPJWTToken {
 
         JSONObject jsonObject = new JSONObject();
         jsonObject.appendField("iss", iss);
-        jsonObject.appendField("aud", aud);
+        JSONArray audiencesArr = new JSONArray();
+        for (String audience : aud) {
+            audiencesArr.appendElement(audience);
+        }
+        jsonObject.appendField("aud", audiencesArr);
         jsonObject.appendField("jti", jti);
         jsonObject.appendField("exp", exp / 1000);
         jsonObject.appendField("iat", iat / 1000);

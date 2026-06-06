@@ -1,9 +1,9 @@
-package cl.dsoto.onboarding;
+package cl.dsoto.services;
 
-import cl.dsoto.onboarding.model.OnboardingEvent;
-import cl.dsoto.onboarding.model.OnboardingEventType;
-import cl.dsoto.onboarding.model.OnboardingState;
-import cl.dsoto.onboarding.repositories.OnboardingProcessRepository;
+import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.events.OnboardingEventType;
+import cl.dsoto.model.OnboardingState;
+import cl.dsoto.repositories.OnboardingProcessRepository;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.h2.H2DatabaseTestResource;
 import io.quarkus.test.junit.QuarkusTest;

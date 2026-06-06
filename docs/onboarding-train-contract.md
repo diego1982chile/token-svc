@@ -46,6 +46,16 @@ and train steps.
 
 ## Endpoint
 
+Public anonymous train:
+
+```http
+GET /api/onboarding/public/train
+```
+
+This endpoint is `PermitAll` and does not expose user-specific state. It returns
+the starting product train for an anonymous visitor with `REGISTRATION` as the
+current step.
+
 Authenticated user:
 
 ```http
@@ -59,6 +69,33 @@ GET /api/onboarding/{username}/train
 ```
 
 If no onboarding process exists for the user, the backend returns `404`.
+
+## Public Response Example
+
+```json
+{
+  "username": null,
+  "currentState": null,
+  "currentStep": "REGISTRATION",
+  "steps": [
+    {
+      "key": "REGISTRATION",
+      "label": "Registro",
+      "status": "CURRENT"
+    },
+    {
+      "key": "IDENTITY_CHECK",
+      "label": "Comprueba tu identidad",
+      "status": "PENDING"
+    },
+    {
+      "key": "PLAN_SELECTION",
+      "label": "Elige tu plan",
+      "status": "PENDING"
+    }
+  ]
+}
+```
 
 ## Response Example
 

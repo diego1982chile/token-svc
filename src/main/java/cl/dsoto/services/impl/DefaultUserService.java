@@ -3,12 +3,17 @@ package cl.dsoto.services.impl;
 
 import cl.dsoto.events.DomainEventPublisher;
 import cl.dsoto.events.EmailConfirmationRequested;
+import cl.dsoto.entities.RoleEntity;
 import cl.dsoto.entities.UserEntity;
 import cl.dsoto.mappers.UserMapper;
+import cl.dsoto.model.Role;
+import cl.dsoto.model.RegistrationResponse;
 import cl.dsoto.model.User;
 import cl.dsoto.model.UserStatus;
-import cl.dsoto.onboarding.OnboardingEngine;
-import cl.dsoto.onboarding.model.OnboardingEvent;
+import cl.dsoto.services.OnboardingEngine;
+import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.repositories.RoleRepository;
+import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.ConfigService;
 import cl.dsoto.services.CypherService;
@@ -27,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -37,6 +43,12 @@ public class DefaultUserService implements UserService {
 
     @Inject
     private UserRepository userRepository;
+
+    @Inject
+    private RoleRepository roleRepository;
+
+    @Inject
+    private OnboardingProcessRepository onboardingProcessRepository;
 
     @Inject
     private UserMapper userMapper;
@@ -106,6 +118,65 @@ public class DefaultUserService implements UserService {
         }
     }
 
+    @Override
+    @Transactional
+    public RegistrationResponse registerUser(String email, String password) {
+        if (email == null || email.isBlank() || password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Email and password are required");
+        }
+
+        String username = email.trim().toLowerCase();
+        Optional<String> existingRegistrationId = onboardingProcessRepository.findById(username)
+                .map(process -> {
+                    if (process.getRegistrationId() == null || process.getRegistrationId().isBlank()) {
+                        process.setRegistrationId(UUID.randomUUID().toString());
+                        onboardingProcessRepository.save(process);
+                    }
+                    return process.getRegistrationId();
+                });
+
+        UserEntity previous = userRepository.findByUsername(username);
+        if (previous != null) {
+            if (previous.getStatus() != UserStatus.ACTIVE) {
+                sendEmailConfirmation(previous.getUsername());
+            }
+
+            return new RegistrationResponse(existingRegistrationId.orElseGet(() -> {
+                String registrationId = UUID.randomUUID().toString();
+                onboardingEngine.applyEvent(OnboardingEvent.userRegistered(username, registrationId));
+                if (previous.getStatus() == UserStatus.ACTIVE) {
+                    onboardingEngine.applyEvent(OnboardingEvent.emailVerified(username));
+                }
+                return registrationId;
+            }));
+        }
+
+        RoleEntity userRole = roleRepository.findByRolename("USER");
+        if (userRole == null) {
+            throw new IllegalStateException("USER role is not configured");
+        }
+
+        String registrationId = UUID.randomUUID().toString();
+        User user = User.builder()
+                .username(username)
+                .password(password)
+                .roles(Set.of(Role.builder()
+                        .id(userRole.getId())
+                        .rolename(userRole.getRolename())
+                        .build()))
+                .build();
+
+        UserEntity userEntity = userMapper.toEntity(user);
+        userEntity.setPassword(BcryptUtil.bcryptHash(user.getPassword()));
+        userEntity.setStatus(UserStatus.PENDING);
+
+        User savedUser = userMapper.toModel(userRepository.save(userEntity));
+        onboardingEngine.applyEvent(OnboardingEvent.userRegistered(savedUser.getUsername(), registrationId));
+        sendEmailConfirmation(savedUser.getUsername());
+
+        return new RegistrationResponse(registrationId);
+    }
+
     @Transactional
     @Override
     public void confirmEmail(String token) {
@@ -159,6 +230,7 @@ public class DefaultUserService implements UserService {
     @Override
     public void deleteUser(String id) {
         userRepository.deleteById(id);
+        onboardingProcessRepository.deleteById(id);
     }
 
     @Override

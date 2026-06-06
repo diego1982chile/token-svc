@@ -70,8 +70,8 @@ public class TokenProviderResource {
     @ConfigProperty(name = "token.issuer")
     String jwtIssuer;
 
-    @ConfigProperty(name = "token.audience")
-    String jwtAudience;
+    @ConfigProperty(name = "token.access-audiences")
+    List<String> jwtAudiences;
 
     @ConfigProperty(name = "quarkus.http.root-path")
     String rootPath;
@@ -129,7 +129,7 @@ public class TokenProviderResource {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
-        String jwt = cypherService.generateJWT(key, username, target, jwtIssuer, jwtAudience);
+        String jwt = cypherService.generateJWT(key, username, target, jwtIssuer, jwtAudiences);
 
         Map<String, String> response = new HashMap<>();
         response.put("token", jwt);

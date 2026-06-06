@@ -1,4 +1,6 @@
-package cl.dsoto.onboarding.model;
+package cl.dsoto.resources.dto;
+
+import cl.dsoto.model.OnboardingState;
 
 import java.util.List;
 

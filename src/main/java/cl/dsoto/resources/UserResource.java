@@ -1,8 +1,10 @@
 package cl.dsoto.resources;
 
+import cl.dsoto.model.RegistrationRequest;
 import cl.dsoto.model.User;
 import cl.dsoto.services.impl.DefaultUserService;
 import io.quarkus.logging.Log;
+import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
@@ -48,6 +50,24 @@ public class UserResource {
         }
         catch (Exception e) {
             Log.error(e.getMessage());
+        }
+        return Response.serverError().build();
+    }
+
+    @POST
+    @Path("register")
+    @PermitAll
+    public Response register(RegistrationRequest request) {
+        try {
+            if (request == null || request.getEmail() == null || request.getEmail().isBlank()
+                    || request.getPassword() == null || request.getPassword().isBlank()) {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+
+            return Response.accepted(defaultUserService.registerUser(request.getEmail(), request.getPassword())).build();
+        }
+        catch (Exception e) {
+            Log.error(e.getMessage(), e);
         }
         return Response.serverError().build();
     }

@@ -1,12 +1,17 @@
-package cl.dsoto.onboarding.model;
+package cl.dsoto.events;
 
 import java.time.Instant;
 
 public record OnboardingEvent(
         String username,
         OnboardingEventType type,
-        Instant occurredAt
+        Instant occurredAt,
+        String registrationId
 ) {
+
+    public OnboardingEvent(String username, OnboardingEventType type, Instant occurredAt) {
+        this(username, type, occurredAt, null);
+    }
 
     public OnboardingEvent {
         if (username == null || username.isBlank()) {
@@ -21,10 +26,14 @@ public record OnboardingEvent(
     }
 
     public static OnboardingEvent userRegistered(String username) {
-        return new OnboardingEvent(username, OnboardingEventType.USER_REGISTERED, Instant.now());
+        return userRegistered(username, null);
+    }
+
+    public static OnboardingEvent userRegistered(String username, String registrationId) {
+        return new OnboardingEvent(username, OnboardingEventType.USER_REGISTERED, Instant.now(), registrationId);
     }
 
     public static OnboardingEvent emailVerified(String username) {
-        return new OnboardingEvent(username, OnboardingEventType.EMAIL_VERIFIED, Instant.now());
+        return new OnboardingEvent(username, OnboardingEventType.EMAIL_VERIFIED, Instant.now(), null);
     }
 }

@@ -6,6 +6,7 @@ import io.quarkus.logging.Log;
 import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -20,6 +21,7 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @RequestScoped
 @PermitAll
 @Produces(APPLICATION_JSON)
+@Consumes(APPLICATION_JSON)
 @Path("users")
 public class UserEmailConfirmationResource {
 
@@ -60,4 +62,5 @@ public class UserEmailConfirmationResource {
         }
         return Response.serverError().build();
     }
+
 }

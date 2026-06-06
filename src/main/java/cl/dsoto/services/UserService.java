@@ -2,6 +2,7 @@ package cl.dsoto.services;
 
 
 import cl.dsoto.model.User;
+import cl.dsoto.model.RegistrationResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,8 @@ public interface UserService {
     List<User> getAllUsers();
 
     User saveUser(User user);
+
+    RegistrationResponse registerUser(String email, String password);
 
     void confirmEmail(String token);
 

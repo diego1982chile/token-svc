@@ -1,7 +1,7 @@
-package cl.dsoto.onboarding;
+package cl.dsoto.services;
 
-import cl.dsoto.onboarding.model.OnboardingEvent;
-import cl.dsoto.onboarding.model.OnboardingState;
+import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.model.OnboardingState;
 
 public interface OnboardingEngine {
 

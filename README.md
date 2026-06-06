@@ -1,7 +1,16 @@
 # token-svc
-Token-Svc is a proof of concept for identity, JWT issuance, a Vaadin administration UI, and email confirmation in Quarkus.
+Token-Svc is an identity service for credentials, account activation, JWT
+issuance, a Vaadin administration UI, and email confirmation in Quarkus.
 
-The current scope is single realm, single audience, and single client. `JWT_ISSUER` identifies the realm and `JWT_AUDIENCE` identifies the only supported audience. Roles are internal to this service, not reusable application roles for a broader microservice ecosystem.
+`JWT_ISSUER` identifies the realm. Access tokens can target multiple service
+audiences through `JWT_ACCESS_AUDIENCES`, while `JWT_AUDIENCE` remains the
+audience used by email-confirmation tokens.
+
+The public signing keys are exposed at:
+
+```text
+/token-service/api/.well-known/jwks.json
+```
 
 See [docs/scope.md](docs/scope.md) for the project scope and [docs/onboarding.md](docs/onboarding.md) for notes about the onboarding flow and service boundaries.
 

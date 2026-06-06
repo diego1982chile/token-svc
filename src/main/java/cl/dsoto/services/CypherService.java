@@ -9,7 +9,7 @@ import java.util.List;
  */
 public interface CypherService {
 
-    String generateJWT(PrivateKey key, String subject, List<String> groups, String issuer, String audience);
+    String generateJWT(PrivateKey key, String subject, List<String> groups, String issuer, List<String> audiences);
 
     String generateEmailConfirmationJWT(PrivateKey key, String email, String issuer, String audience);
 

@@ -1,13 +1,10 @@
-package cl.dsoto.onboarding.impl;
+package cl.dsoto.services.impl;
 
-import cl.dsoto.onboarding.OnboardingEngine;
-import cl.dsoto.onboarding.entities.OnboardingProcess;
-import cl.dsoto.onboarding.model.OnboardingEvent;
-import cl.dsoto.onboarding.model.OnboardingState;
-import cl.dsoto.onboarding.repositories.OnboardingProcessRepository;
-import cl.dsoto.onboarding.rules.EmailVerifiedRule;
-import cl.dsoto.onboarding.rules.IdempotentOnboardingRule;
-import cl.dsoto.onboarding.rules.UserRegisteredRule;
+import cl.dsoto.services.OnboardingEngine;
+import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.model.OnboardingState;
+import cl.dsoto.repositories.OnboardingProcessRepository;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -52,6 +49,7 @@ public class DefaultOnboardingEngine implements OnboardingEngine {
         if (process == null) {
             process = OnboardingProcess.builder()
                     .username(event.username())
+                    .registrationId(event.registrationId())
                     .currentState(nextState)
                     .createdAt(event.occurredAt())
                     .updatedAt(event.occurredAt())

@@ -1,12 +1,14 @@
-package cl.dsoto.onboarding.impl;
+package cl.dsoto.services.impl;
 
-import cl.dsoto.onboarding.OnboardingEngine;
-import cl.dsoto.onboarding.OnboardingTrainViewService;
-import cl.dsoto.onboarding.model.OnboardingState;
-import cl.dsoto.onboarding.model.OnboardingTrainStep;
-import cl.dsoto.onboarding.model.OnboardingTrainStepStatus;
-import cl.dsoto.onboarding.model.OnboardingTrainStepView;
-import cl.dsoto.onboarding.model.OnboardingTrainView;
+import cl.dsoto.services.OnboardingEngine;
+import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.repositories.OnboardingProcessRepository;
+import cl.dsoto.services.OnboardingTrainViewService;
+import cl.dsoto.model.OnboardingState;
+import cl.dsoto.resources.dto.OnboardingTrainStep;
+import cl.dsoto.resources.dto.OnboardingTrainStepStatus;
+import cl.dsoto.resources.dto.OnboardingTrainStepView;
+import cl.dsoto.resources.dto.OnboardingTrainView;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 
@@ -19,6 +21,14 @@ public class DefaultOnboardingTrainViewService implements OnboardingTrainViewSer
     @Inject
     OnboardingEngine onboardingEngine;
 
+    @Inject
+    OnboardingProcessRepository onboardingProcessRepository;
+
+    @Override
+    public OnboardingTrainView getPublicTrainView(String stage) {
+        return trainView(null, null, publicStepFor(stage));
+    }
+
     @Override
     public Optional<OnboardingTrainView> getTrainView(String username) {
         OnboardingState currentState = onboardingEngine.getCurrentState(username);
@@ -27,7 +37,30 @@ public class DefaultOnboardingTrainViewService implements OnboardingTrainViewSer
         }
 
         OnboardingTrainStep currentStep = currentStepFor(currentState);
-        return Optional.of(new OnboardingTrainView(
+        return Optional.of(trainView(username, currentState, currentStep));
+    }
+
+    @Override
+    public Optional<OnboardingTrainView> getTrainViewByRegistrationId(String registrationId) {
+        if (registrationId == null || registrationId.isBlank()) {
+            return Optional.empty();
+        }
+
+        return onboardingProcessRepository.findByRegistrationId(registrationId)
+                .map(this::trainView);
+    }
+
+    private OnboardingTrainView trainView(OnboardingProcess process) {
+        OnboardingState currentState = process.getCurrentState();
+        return trainView(null, currentState, currentStepFor(currentState));
+    }
+
+    private OnboardingTrainView trainView(
+            String username,
+            OnboardingState currentState,
+            OnboardingTrainStep currentStep
+    ) {
+        return new OnboardingTrainView(
                 username,
                 currentState,
                 currentStep,
@@ -36,7 +69,7 @@ public class DefaultOnboardingTrainViewService implements OnboardingTrainViewSer
                         step(OnboardingTrainStep.IDENTITY_CHECK, "Comprueba tu identidad", statusFor(OnboardingTrainStep.IDENTITY_CHECK, currentStep, currentState)),
                         step(OnboardingTrainStep.PLAN_SELECTION, "Elige tu plan", statusFor(OnboardingTrainStep.PLAN_SELECTION, currentStep, currentState))
                 )
-        ));
+        );
     }
 
     private OnboardingTrainStep currentStepFor(OnboardingState currentState) {
@@ -45,6 +78,14 @@ public class DefaultOnboardingTrainViewService implements OnboardingTrainViewSer
             case EMAIL_VERIFIED -> OnboardingTrainStep.IDENTITY_CHECK;
             case KYC_APPROVED, PLAN_SELECTED, PROFILE_COMPLETED, READY_TO_PUBLISH -> OnboardingTrainStep.PLAN_SELECTION;
         };
+    }
+
+    private OnboardingTrainStep publicStepFor(String stage) {
+        if ("email-confirmed".equalsIgnoreCase(stage) || "EMAIL_CONFIRMED".equalsIgnoreCase(stage)) {
+            return OnboardingTrainStep.IDENTITY_CHECK;
+        }
+
+        return OnboardingTrainStep.REGISTRATION;
     }
 
     private OnboardingTrainStepStatus statusFor(

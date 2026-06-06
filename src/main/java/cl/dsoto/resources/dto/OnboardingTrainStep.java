@@ -1,4 +1,4 @@
-package cl.dsoto.onboarding.model;
+package cl.dsoto.resources.dto;
 
 public enum OnboardingTrainStep {
     REGISTRATION,

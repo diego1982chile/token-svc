@@ -1,11 +1,11 @@
-package cl.dsoto.onboarding;
+package cl.dsoto.services;
 
-import cl.dsoto.onboarding.model.OnboardingEvent;
-import cl.dsoto.onboarding.model.OnboardingState;
-import cl.dsoto.onboarding.model.OnboardingTrainStep;
-import cl.dsoto.onboarding.model.OnboardingTrainStepStatus;
-import cl.dsoto.onboarding.model.OnboardingTrainView;
-import cl.dsoto.onboarding.repositories.OnboardingProcessRepository;
+import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.model.OnboardingState;
+import cl.dsoto.resources.dto.OnboardingTrainStep;
+import cl.dsoto.resources.dto.OnboardingTrainStepStatus;
+import cl.dsoto.resources.dto.OnboardingTrainView;
+import cl.dsoto.repositories.OnboardingProcessRepository;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.h2.H2DatabaseTestResource;
 import io.quarkus.test.junit.QuarkusTest;
@@ -34,6 +34,30 @@ class OnboardingTrainViewServiceTest {
     @BeforeEach
     void cleanUp() {
         repository.deleteAll();
+    }
+
+    @Test
+    void shouldShowPublicRegistrationTrain() {
+        OnboardingTrainView view = trainViewService.getPublicTrainView(null);
+
+        assertThat(view.username(), is((String) null));
+        assertThat(view.currentState(), is((OnboardingState) null));
+        assertThat(view.currentStep(), is(OnboardingTrainStep.REGISTRATION));
+        assertThat(view.steps().get(0).status(), is(OnboardingTrainStepStatus.CURRENT));
+        assertThat(view.steps().get(1).status(), is(OnboardingTrainStepStatus.PENDING));
+        assertThat(view.steps().get(2).status(), is(OnboardingTrainStepStatus.PENDING));
+    }
+
+    @Test
+    void shouldShowIdentityCheckForPublicEmailConfirmedTrain() {
+        OnboardingTrainView view = trainViewService.getPublicTrainView("email-confirmed");
+
+        assertThat(view.username(), is((String) null));
+        assertThat(view.currentState(), is((OnboardingState) null));
+        assertThat(view.currentStep(), is(OnboardingTrainStep.IDENTITY_CHECK));
+        assertThat(view.steps().get(0).status(), is(OnboardingTrainStepStatus.COMPLETED));
+        assertThat(view.steps().get(1).status(), is(OnboardingTrainStepStatus.CURRENT));
+        assertThat(view.steps().get(2).status(), is(OnboardingTrainStepStatus.PENDING));
     }
 
     @Test

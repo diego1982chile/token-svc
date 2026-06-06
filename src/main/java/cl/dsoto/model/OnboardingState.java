@@ -1,4 +1,4 @@
-package cl.dsoto.onboarding.model;
+package cl.dsoto.model;
 
 public enum OnboardingState {
     REGISTERED,

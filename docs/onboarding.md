@@ -1,6 +1,7 @@
 # Onboarding Architecture Notes
 
-This document assumes the scope defined in [token-svc Scope](scope.md): single realm, single audience, single client, and internal roles only.
+This document assumes the scope defined in [token-svc Scope](scope.md): single
+realm, shared access-token audiences, and global roles.
 
 `token-svc` owns identity and authentication concerns. Its user status should describe whether an account can authenticate, not whether the user has completed commercial onboarding.
 
@@ -47,6 +48,35 @@ Example events:
 - `ProfileCompleted`
 - `SubscriptionActivated`
 - `SubscriptionCanceled`
+
+## Deferred Migration to onboarding-svc
+
+`token-svc` currently contains onboarding persistence, `OnboardingEvent`,
+`OnboardingEngine`, Easy Rules transitions, train projection logic, and their
+tests. This code is transitional, but it is reusable and must be migrated
+rather than redesigned from scratch.
+
+The migration is intentionally deferred. When resumed:
+
+- `onboarding-svc` will own onboarding persistence, state transitions, and
+  train projection.
+- `token-svc` will publish `USER_REGISTERED` and `EMAIL_VERIFIED` events using
+  a versioned, transport-neutral contract.
+- `token-svc` will use a transactional outbox so identity changes and pending
+  events are committed atomically.
+- Events will be published to SNS and consumed from a dedicated SQS queue by
+  `onboarding-svc`.
+- Local development will use LocalStack.
+- The SQS consumer will persist processed event ids for idempotency and use a
+  dead-letter queue for failed messages.
+
+REST service-to-service event delivery is not planned as an intermediate step
+because it adds B2B authentication, retry handling, and availability coupling.
+Camel Quarkus is also deferred until KYC, Stripe, or other integrations create
+enough routing complexity to justify it.
+
+The detailed migration order and event envelope are documented in
+`onboarding-svc/docs/deferred-event-migration.md`.
 
 ## Email Confirmation Event
 

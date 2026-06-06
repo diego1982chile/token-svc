@@ -14,12 +14,14 @@ services:
       JAVA_DEBUG_PORT: "*:8000"
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-identity-svc}
+      JWT_ACCESS_AUDIENCES: ${JWT_ACCESS_AUDIENCES:-identity-svc,onboarding-svc}
       AUTH_SESSION_ENCRYPTION_KEY: ${AUTH_SESSION_ENCRYPTION_KEY:-docker-only-change-me-32-chars!!}
       IDENTITY_SEED_ENABLED: ${IDENTITY_SEED_ENABLED:-true}
       MAIL_HOST: mailpit
       MAIL_PORT: 1025
       MAIL_FROM: no-reply@token-svc.local
       MAIL_MOCK: "false"
+      CORS_ORIGINS: http://localhost,http://localhost:8000
     volumes:
       - ${PWD}/db/accounts.db:/deployments/accounts.db
     depends_on:

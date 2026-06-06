@@ -51,10 +51,14 @@ Example events:
 
 ## Deferred Migration to onboarding-svc
 
-`token-svc` currently contains onboarding persistence, `OnboardingEvent`,
-`OnboardingEngine`, Easy Rules transitions, train projection logic, and their
-tests. This code is transitional, but it is reusable and must be migrated
-rather than redesigned from scratch.
+`token-svc` no longer exposes onboarding train or registration-status endpoints.
+The product onboarding API belongs in `onboarding-svc`.
+
+`token-svc` still contains transitional onboarding persistence,
+`OnboardingEvent`, `OnboardingEngine`, Easy Rules transitions, and related tests.
+This remaining code supports registration ids and email-confirmation state while
+the identity event feed is deferred. It should be replaced by event publication
+instead of redesigned as product onboarding logic.
 
 The migration is intentionally deferred. When resumed:
 

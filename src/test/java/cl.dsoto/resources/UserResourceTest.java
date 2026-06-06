@@ -167,24 +167,6 @@ public class UserResourceTest {
     }
 
     @Test
-    public void shouldAccessPublicOnboardingTrainWhenAnonymous() {
-        given()
-                .when()
-                .get("/api/onboarding/public/train")
-                .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body("username", nullValue())
-                .body("currentState", nullValue())
-                .body("currentStep", is("REGISTRATION"))
-                .body("steps[0].key", is("REGISTRATION"))
-                .body("steps[0].status", is("CURRENT"))
-                .body("steps[1].key", is("IDENTITY_CHECK"))
-                .body("steps[1].status", is("PENDING"))
-                .body("steps[2].key", is("PLAN_SELECTION"))
-                .body("steps[2].status", is("PENDING"));
-    }
-
-    @Test
     public void shouldExposePublicJwksWhenAnonymous() {
         given()
                 .when()
@@ -236,68 +218,7 @@ public class UserResourceTest {
     }
 
     @Test
-    public void shouldReturnPendingConfirmationStatusByRegistrationId() {
-        String email = "pending.confirmation@example.com";
-        String registrationId = "registration-pending-123";
-        RoleEntity userRole = getOrCreateRole("USER");
-        UserEntity user = UserEntity.builder()
-                .username(email)
-                .password(BcryptUtil.bcryptHash("secret123"))
-                .status(UserStatus.PENDING)
-                .roles(Set.of(userRole))
-                .build();
-        userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
-                .username(email)
-                .registrationId(registrationId)
-                .currentState(OnboardingState.REGISTERED)
-                .build());
-
-        given()
-                .when()
-                .get("/api/onboarding/public/" + registrationId + "/status")
-                .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body("confirmed", is(false))
-                .body("train.username", nullValue())
-                .body("train.currentState", is("REGISTERED"))
-                .body("train.currentStep", is("REGISTRATION"));
-    }
-
-    @Test
-    public void shouldReturnNextTrainByRegistrationIdWhenUserEmailIsConfirmed() {
-        String email = "confirmed.user@example.com";
-        String registrationId = "registration-confirmed-123";
-        RoleEntity userRole = getOrCreateRole("USER");
-        UserEntity user = UserEntity.builder()
-                .username(email)
-                .password(BcryptUtil.bcryptHash("secret123"))
-                .status(UserStatus.ACTIVE)
-                .roles(Set.of(userRole))
-                .build();
-        userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
-                .username(email)
-                .registrationId(registrationId)
-                .currentState(OnboardingState.EMAIL_VERIFIED)
-                .build());
-
-        given()
-                .when()
-                .get("/api/onboarding/public/" + registrationId + "/status")
-                .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body("confirmed", is(true))
-                .body("train.username", nullValue())
-                .body("train.currentState", is("EMAIL_VERIFIED"))
-                .body("train.currentStep", is("IDENTITY_CHECK"))
-                .body("train.steps[0].status", is("COMPLETED"))
-                .body("train.steps[1].status", is("CURRENT"))
-                .body("train.steps[2].status", is("PENDING"));
-    }
-
-    @Test
-    public void shouldCreateConfirmedRegistrationForExistingActiveUserWithoutOnboarding() {
+    public void shouldReturnRegistrationIdForExistingActiveUser() {
         String email = "active.without.onboarding@example.com";
         RoleEntity userRole = getOrCreateRole("USER");
         UserEntity user = UserEntity.builder()
@@ -322,14 +243,7 @@ public class UserResourceTest {
                 .extract()
                 .path("registrationId");
 
-        given()
-                .when()
-                .get("/api/onboarding/public/" + registrationId + "/status")
-                .then()
-                .statusCode(HttpStatus.SC_OK)
-                .body("confirmed", is(true))
-                .body("train.currentState", is("EMAIL_VERIFIED"))
-                .body("train.currentStep", is("IDENTITY_CHECK"));
+        assertThat(registrationId, notNullValue());
     }
 
     @Test

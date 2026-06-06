@@ -60,6 +60,19 @@ This remaining code supports registration ids and email-confirmation state while
 the identity event feed is deferred. It should be replaced by event publication
 instead of redesigned as product onboarding logic.
 
+Current transitional code that remains in `token-svc`:
+
+- `OnboardingProcess` and `OnboardingProcessRepository`.
+- `OnboardingEvent` and `OnboardingEventType`.
+- `OnboardingEngine` and `DefaultOnboardingEngine`.
+- Easy Rules transition classes.
+- Calls from registration and email confirmation into the local onboarding
+  engine.
+
+This code must be treated as temporary compatibility code. Do not add product
+onboarding features, train projection, KYC logic, subscription logic, or
+presentation endpoints back into `token-svc`.
+
 The migration is intentionally deferred. When resumed:
 
 - `onboarding-svc` will own onboarding persistence, state transitions, and
@@ -118,6 +131,21 @@ Next implementation steps in `token-svc`:
    the existing local onboarding engine calls temporarily.
 5. After `onboarding-svc` consumes the feed end-to-end, remove direct
    onboarding state mutation from `token-svc`.
+
+The next cleanup cut should therefore be event-feed first, removal second:
+
+1. Implement the local identity event log and cursor feed in `token-svc`.
+2. Append `USER_REGISTERED` from the public registration flow.
+3. Append `EMAIL_VERIFIED` from the email confirmation flow.
+4. Keep the existing local onboarding engine only long enough to preserve
+   current registration behavior while `onboarding-svc` catches up.
+5. Wire `onboarding-svc` to consume the feed and persist processed events
+   idempotently.
+6. Remove `OnboardingProcess`, `OnboardingEngine`, Easy Rules, and the
+   repository from `token-svc`.
+
+Do not spend more effort polishing the remaining local onboarding engine in
+`token-svc`; its only purpose is to bridge the migration.
 
 Event emission must be selective. The identity event log is not an audit log
 for every user change. Only explicit user-facing onboarding flows should append

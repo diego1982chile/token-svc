@@ -60,8 +60,8 @@ The migration is intentionally deferred. When resumed:
 
 - `onboarding-svc` will own onboarding persistence, state transitions, and
   train projection.
-- `token-svc` will publish `USER_REGISTERED` and `EMAIL_VERIFIED` events using
-  a versioned, transport-neutral contract.
+- `token-svc` will publish `USER_REGISTERED` and `EMAIL_VERIFIED` identity
+  events through a cursor-based feed contract.
 - The immediate migration path is an internal, cursor-based identity event
   feed exposed by `token-svc`, not direct REST callbacks.
 - `token-svc` will persist identity events in an append-only event log and
@@ -96,6 +96,11 @@ enough routing complexity to justify it.
 
 The detailed migration order and event envelope are documented in
 `onboarding-svc/docs/deferred-event-migration.md`.
+
+The immediate feed model should use `IdentityEventFeedPage` and
+`IdentityEventFeedItem`. The previously implemented `IdentityEventEnvelope`
+belongs to the validated SNS/SQS prototype and should not be treated as the
+central HTTP feed contract.
 
 ## Email Confirmation Event
 

@@ -8,5 +8,5 @@ import java.util.List;
 
 public interface IdentityEventLogEntryRepository extends JpaRepository<IdentityEventLogEntryEntity, Long> {
 
-    List<IdentityEventLogEntryEntity> findBySequenceGreaterThanOrderBySequenceAsc(Long sequence, Pageable pageable);
+    List<IdentityEventLogEntryEntity> findByIdGreaterThanOrderByIdAsc(Long id, Pageable pageable);
 }

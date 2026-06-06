@@ -38,7 +38,7 @@ public class DefaultIdentityEventFeedWebService implements IdentityEventFeedWebS
     ) {
         int pageSize = normalizedLimit(limit);
         List<IdentityEventFeedItemResource> items = repository
-                .findBySequenceGreaterThanOrderBySequenceAsc(
+                .findByIdGreaterThanOrderByIdAsc(
                         after == null ? 0L : after,
                         PageRequest.of(0, pageSize + 1)
                 )
@@ -66,7 +66,7 @@ public class DefaultIdentityEventFeedWebService implements IdentityEventFeedWebS
 
     private IdentityEventFeedItemResource toResource(IdentityEventLogEntryEntity entry) {
         return new IdentityEventFeedItemResource(
-                entry.getSequence(),
+                entry.getId(),
                 entry.getEventId(),
                 entry.getEventType(),
                 entry.getSubject(),

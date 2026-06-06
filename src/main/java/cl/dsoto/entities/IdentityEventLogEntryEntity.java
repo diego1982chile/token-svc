@@ -1,7 +1,6 @@
 package cl.dsoto.entities;
 
 import cl.dsoto.model.IdentityEventType;
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -26,8 +25,7 @@ public class IdentityEventLogEntryEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "EVENT_SEQUENCE")
-    private Long sequence;
+    private Long id;
 
     private String eventId;
 

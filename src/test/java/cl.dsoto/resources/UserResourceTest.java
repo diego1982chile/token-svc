@@ -332,6 +332,8 @@ public class UserResourceTest {
                 .path("registrationId");
 
         assertThat(registrationId, notNullValue());
+        assertThat(identityEventLogEntryRepository.findAll().stream()
+                .anyMatch(event -> event.getEventType() == IdentityEventType.EMAIL_VERIFIED), is(false));
     }
 
     @Test

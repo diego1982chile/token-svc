@@ -153,7 +153,6 @@ public class DefaultUserService implements UserService {
                 appendIdentityEvent(IdentityEventType.USER_REGISTERED, username, registrationId);
                 if (previous.getStatus() == UserStatus.ACTIVE) {
                     onboardingEngine.applyEvent(OnboardingEvent.emailVerified(username));
-                    appendIdentityEvent(IdentityEventType.EMAIL_VERIFIED, username, null);
                 }
                 return registrationId;
             }));

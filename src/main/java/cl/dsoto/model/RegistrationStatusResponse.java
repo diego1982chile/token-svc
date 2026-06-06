@@ -1,5 +1,6 @@
-package cl.dsoto.webservice.resources;
+package cl.dsoto.model;
 
+import cl.dsoto.resources.dto.OnboardingTrainView;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -7,8 +8,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegistrationStatusResource {
+public class RegistrationStatusResponse {
 
     private boolean confirmed;
-    private OnboardingTrainResource train;
+    private OnboardingTrainView train;
 }

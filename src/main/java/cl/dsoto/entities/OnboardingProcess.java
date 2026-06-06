@@ -19,7 +19,7 @@ import java.time.Instant;
 @NoArgsConstructor
 @Entity
 @Table(name = "ONBOARDING_PROCESS")
-public class OnboardingProcessEntity {
+public class OnboardingProcess {
 
     @Id
     private String username;

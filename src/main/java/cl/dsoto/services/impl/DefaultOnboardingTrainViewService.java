@@ -1,14 +1,14 @@
 package cl.dsoto.services.impl;
 
 import cl.dsoto.services.OnboardingEngine;
-import cl.dsoto.entities.OnboardingProcessEntity;
+import cl.dsoto.entities.OnboardingProcess;
 import cl.dsoto.repositories.OnboardingProcessRepository;
-import cl.dsoto.services.OnboardingTrainService;
+import cl.dsoto.services.OnboardingTrainViewService;
 import cl.dsoto.model.OnboardingState;
-import cl.dsoto.webservice.resources.OnboardingTrainStep;
-import cl.dsoto.webservice.resources.OnboardingTrainStepStatus;
-import cl.dsoto.webservice.resources.OnboardingTrainStepResource;
-import cl.dsoto.webservice.resources.OnboardingTrainResource;
+import cl.dsoto.resources.dto.OnboardingTrainStep;
+import cl.dsoto.resources.dto.OnboardingTrainStepStatus;
+import cl.dsoto.resources.dto.OnboardingTrainStepView;
+import cl.dsoto.resources.dto.OnboardingTrainView;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
 
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RequestScoped
-public class DefaultOnboardingTrainService implements OnboardingTrainService {
+public class DefaultOnboardingTrainViewService implements OnboardingTrainViewService {
 
     @Inject
     OnboardingEngine onboardingEngine;
@@ -25,12 +25,12 @@ public class DefaultOnboardingTrainService implements OnboardingTrainService {
     OnboardingProcessRepository onboardingProcessRepository;
 
     @Override
-    public OnboardingTrainResource getPublicTrain(String stage) {
+    public OnboardingTrainView getPublicTrainView(String stage) {
         return trainView(null, null, publicStepFor(stage));
     }
 
     @Override
-    public Optional<OnboardingTrainResource> getTrain(String username) {
+    public Optional<OnboardingTrainView> getTrainView(String username) {
         OnboardingState currentState = onboardingEngine.getCurrentState(username);
         if (currentState == null) {
             return Optional.empty();
@@ -41,7 +41,7 @@ public class DefaultOnboardingTrainService implements OnboardingTrainService {
     }
 
     @Override
-    public Optional<OnboardingTrainResource> getTrainByRegistrationId(String registrationId) {
+    public Optional<OnboardingTrainView> getTrainViewByRegistrationId(String registrationId) {
         if (registrationId == null || registrationId.isBlank()) {
             return Optional.empty();
         }
@@ -50,17 +50,17 @@ public class DefaultOnboardingTrainService implements OnboardingTrainService {
                 .map(this::trainView);
     }
 
-    private OnboardingTrainResource trainView(OnboardingProcessEntity process) {
+    private OnboardingTrainView trainView(OnboardingProcess process) {
         OnboardingState currentState = process.getCurrentState();
         return trainView(null, currentState, currentStepFor(currentState));
     }
 
-    private OnboardingTrainResource trainView(
+    private OnboardingTrainView trainView(
             String username,
             OnboardingState currentState,
             OnboardingTrainStep currentStep
     ) {
-        return new OnboardingTrainResource(
+        return new OnboardingTrainView(
                 username,
                 currentState,
                 currentStep,
@@ -106,11 +106,11 @@ public class DefaultOnboardingTrainService implements OnboardingTrainService {
                 : OnboardingTrainStepStatus.PENDING;
     }
 
-    private OnboardingTrainStepResource step(
+    private OnboardingTrainStepView step(
             OnboardingTrainStep step,
             String label,
             OnboardingTrainStepStatus status
     ) {
-        return new OnboardingTrainStepResource(step, label, status);
+        return new OnboardingTrainStepView(step, label, status);
     }
 }

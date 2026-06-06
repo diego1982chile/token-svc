@@ -1,11 +1,11 @@
 package cl.dsoto.repositories;
 
-import cl.dsoto.entities.OnboardingProcessEntity;
+import cl.dsoto.entities.OnboardingProcess;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
 
-public interface OnboardingProcessRepository extends JpaRepository<OnboardingProcessEntity, String> {
+public interface OnboardingProcessRepository extends JpaRepository<OnboardingProcess, String> {
 
-    Optional<OnboardingProcessEntity> findByRegistrationId(String registrationId);
+    Optional<OnboardingProcess> findByRegistrationId(String registrationId);
 }

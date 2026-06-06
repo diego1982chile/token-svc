@@ -5,7 +5,7 @@ import cl.dsoto.entities.UserEntity;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.UserStatus;
 import cl.dsoto.model.OnboardingState;
-import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.entities.OnboardingProcessEntity;
 import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
@@ -247,7 +247,7 @@ public class UserResourceTest {
                 .roles(Set.of(userRole))
                 .build();
         userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
+        onboardingProcessRepository.save(OnboardingProcessEntity.builder()
                 .username(email)
                 .registrationId(registrationId)
                 .currentState(OnboardingState.REGISTERED)
@@ -276,7 +276,7 @@ public class UserResourceTest {
                 .roles(Set.of(userRole))
                 .build();
         userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
+        onboardingProcessRepository.save(OnboardingProcessEntity.builder()
                 .username(email)
                 .registrationId(registrationId)
                 .currentState(OnboardingState.EMAIL_VERIFIED)
@@ -343,7 +343,7 @@ public class UserResourceTest {
                 .roles(Set.of(userRole))
                 .build();
         userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
+        onboardingProcessRepository.save(OnboardingProcessEntity.builder()
                 .username(email)
                 .currentState(OnboardingState.EMAIL_VERIFIED)
                 .build());

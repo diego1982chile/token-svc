@@ -1,6 +1,6 @@
-package cl.dsoto.resources.dto;
+package cl.dsoto.webservice.resources;
 
-public record OnboardingTrainStepView(
+public record OnboardingTrainStepResource(
         OnboardingTrainStep key,
         String label,
         OnboardingTrainStepStatus status

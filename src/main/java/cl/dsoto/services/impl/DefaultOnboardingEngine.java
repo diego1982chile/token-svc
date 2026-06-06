@@ -1,7 +1,7 @@
 package cl.dsoto.services.impl;
 
 import cl.dsoto.services.OnboardingEngine;
-import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.entities.OnboardingProcessEntity;
 import cl.dsoto.events.OnboardingEvent;
 import cl.dsoto.model.OnboardingState;
 import cl.dsoto.repositories.OnboardingProcessRepository;
@@ -26,7 +26,7 @@ public class DefaultOnboardingEngine implements OnboardingEngine {
     @Override
     @Transactional
     public void applyEvent(OnboardingEvent event) {
-        OnboardingProcess process = repository.findById(event.username()).orElse(null);
+        OnboardingProcessEntity process = repository.findById(event.username()).orElse(null);
         OnboardingState currentState = process == null ? null : process.getCurrentState();
 
         Facts facts = new Facts();
@@ -47,7 +47,7 @@ public class DefaultOnboardingEngine implements OnboardingEngine {
 
         OnboardingState nextState = facts.get("nextState");
         if (process == null) {
-            process = OnboardingProcess.builder()
+            process = OnboardingProcessEntity.builder()
                     .username(event.username())
                     .registrationId(event.registrationId())
                     .currentState(nextState)
@@ -69,7 +69,7 @@ public class DefaultOnboardingEngine implements OnboardingEngine {
         }
 
         return repository.findById(username)
-                .map(OnboardingProcess::getCurrentState)
+                .map(OnboardingProcessEntity::getCurrentState)
                 .orElse(null);
     }
 

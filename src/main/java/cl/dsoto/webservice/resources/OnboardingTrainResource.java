@@ -1,13 +1,13 @@
-package cl.dsoto.resources.dto;
+package cl.dsoto.webservice.resources;
 
 import cl.dsoto.model.OnboardingState;
 
 import java.util.List;
 
-public record OnboardingTrainView(
+public record OnboardingTrainResource(
         String username,
         OnboardingState currentState,
         OnboardingTrainStep currentStep,
-        List<OnboardingTrainStepView> steps
+        List<OnboardingTrainStepResource> steps
 ) {
 }

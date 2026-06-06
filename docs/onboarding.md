@@ -114,18 +114,42 @@ enough routing complexity to justify it.
 The detailed migration order and event envelope are documented in
 `onboarding-svc/docs/deferred-event-migration.md`.
 
-The immediate feed model should use `IdentityEventFeedPage` and
-`IdentityEventFeedItem`. The previously implemented `IdentityEventEnvelope`
-belongs to the validated SNS/SQS prototype and should not be treated as the
-central HTTP feed contract.
+The immediate feed model should use HTTP resource classes, not the SNS/SQS
+envelope. The previously implemented `IdentityEventEnvelope` belongs to the
+validated SNS/SQS prototype and should not be treated as the central HTTP feed
+contract.
+
+Use these exact names for the feed implementation:
+
+```text
+entities/IdentityEventLogEntryEntity.java
+repositories/IdentityEventLogEntryRepository.java
+model/IdentityEventType.java
+webservice/IdentityEventFeedWebService.java
+webservice/impl/DefaultIdentityEventFeedWebService.java
+webservice/resources/IdentityEventFeedItemResource.java
+webservice/resources/IdentityEventFeedPageResource.java
+```
+
+Classification:
+
+- `IdentityEventLogEntryEntity` is the append-only persisted event row.
+- `IdentityEventLogEntryRepository` is the Spring Data repository for that
+  entity.
+- `IdentityEventType` is the internal application concept for identity event
+  names.
+- `IdentityEventFeedWebService` is the HTTP feed contract.
+- `DefaultIdentityEventFeedWebService` is the Quarkus REST implementation.
+- `IdentityEventFeedItemResource` and `IdentityEventFeedPageResource` are HTTP
+  response payloads.
 
 Next implementation steps in `token-svc`:
 
-1. Add append-only `IdentityEventLogEntry` persistence with `sequence`,
+1. Add append-only `IdentityEventLogEntryEntity` persistence with `sequence`,
    `eventId`, `eventType`, `subject`, `occurredAt`, and optional
    `registrationId`.
-2. Add feed response models `IdentityEventFeedItem` and
-   `IdentityEventFeedPage`.
+2. Add feed response resources `IdentityEventFeedItemResource` and
+   `IdentityEventFeedPageResource`.
 3. Expose `GET /internal/identity-events?after=<cursor>&limit=<n>`.
 4. Write `USER_REGISTERED` and `EMAIL_VERIFIED` to the event log while keeping
    the existing local onboarding engine calls temporarily.

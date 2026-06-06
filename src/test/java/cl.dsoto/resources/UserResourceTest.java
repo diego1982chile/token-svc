@@ -2,10 +2,12 @@ package cl.dsoto.resources;
 
 import cl.dsoto.entities.RoleEntity;
 import cl.dsoto.entities.UserEntity;
+import cl.dsoto.model.IdentityEventType;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.UserStatus;
 import cl.dsoto.model.OnboardingState;
 import cl.dsoto.entities.OnboardingProcess;
+import cl.dsoto.repositories.IdentityEventLogEntryRepository;
 import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
@@ -62,11 +64,20 @@ public class UserResourceTest {
     @Inject
     private OnboardingProcessRepository onboardingProcessRepository;
 
+    @Inject
+    private IdentityEventLogEntryRepository identityEventLogEntryRepository;
+
+    @Inject
+    private CypherService cypherService;
+
     @InjectMock
     private ConfigService configService;
 
+    private KeyPair keyPair;
+
     @BeforeEach
     public void init() throws NoSuchAlgorithmException, IOException {
+        identityEventLogEntryRepository.deleteAll();
 
         RoleEntity adminRole = getOrCreateRole("ADMIN");
         RoleEntity userRole = getOrCreateRole("USER");
@@ -89,10 +100,10 @@ public class UserResourceTest {
 
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
-        KeyPair pair = generator.generateKeyPair();
+        keyPair = generator.generateKeyPair();
 
-        Mockito.when(configService.getPrivateKey()).thenReturn(pair.getPrivate());
-        Mockito.when(configService.getPublicKey()).thenReturn(pair.getPublic());
+        Mockito.when(configService.getPrivateKey()).thenReturn(keyPair.getPrivate());
+        Mockito.when(configService.getPublicKey()).thenReturn(keyPair.getPublic());
     }
 
     private RoleEntity getOrCreateRole(String rolename) {
@@ -204,6 +215,83 @@ public class UserResourceTest {
         assertThat(user.getStatus(), is(UserStatus.PENDING));
         assertThat(user.getRoles().stream().anyMatch(role -> "USER".equals(role.getRolename())), is(true));
         assertThat(onboardingProcessRepository.findById(email).orElseThrow().getRegistrationId(), is(registrationId));
+
+        var identityEvents = identityEventLogEntryRepository.findAll();
+        assertThat(identityEvents.size(), is(1));
+        assertThat(identityEvents.get(0).getEventType(), is(IdentityEventType.USER_REGISTERED));
+        assertThat(identityEvents.get(0).getSubject(), is(email));
+        assertThat(identityEvents.get(0).getRegistrationId(), is(registrationId));
+    }
+
+    @Test
+    public void shouldExposeIdentityEventFeedForAdmin() {
+        String email = "feed.user@example.com";
+
+        String registrationId = given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED)
+                .extract()
+                .path("registrationId");
+
+        given()
+                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
+                .queryParam("after", 0)
+                .queryParam("limit", 10)
+                .when()
+                .get("/api/internal/identity-events")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("items[0].eventType", is("USER_REGISTERED"))
+                .body("items[0].subject", is(email))
+                .body("items[0].registrationId", is(registrationId))
+                .body("items[0].cursor", notNullValue())
+                .body("nextCursor", notNullValue())
+                .body("hasMore", is(false));
+    }
+
+    @Test
+    public void shouldAppendEmailVerifiedIdentityEventWhenEmailIsConfirmed() {
+        String email = "confirmed.event@example.com";
+        String token = cypherService.generateEmailConfirmationJWT(
+                keyPair.getPrivate(),
+                email,
+                "https://apis.internal.dsoto.cl",
+                "identity-svc"
+        );
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED);
+
+        given()
+                .queryParam("token", token)
+                .when()
+                .get("/api/users/confirm-email")
+                .then()
+                .statusCode(HttpStatus.SC_OK);
+
+        var identityEvents = identityEventLogEntryRepository.findAll();
+        assertThat(identityEvents.size(), is(2));
+        assertThat(identityEvents.stream()
+                .anyMatch(event -> event.getEventType() == IdentityEventType.USER_REGISTERED
+                        && email.equals(event.getSubject())), is(true));
+        assertThat(identityEvents.stream()
+                .anyMatch(event -> event.getEventType() == IdentityEventType.EMAIL_VERIFIED
+                        && email.equals(event.getSubject())), is(true));
     }
 
     @Test

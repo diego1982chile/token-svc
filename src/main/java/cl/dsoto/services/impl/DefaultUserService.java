@@ -3,15 +3,18 @@ package cl.dsoto.services.impl;
 
 import cl.dsoto.events.DomainEventPublisher;
 import cl.dsoto.events.EmailConfirmationRequested;
+import cl.dsoto.entities.IdentityEventLogEntryEntity;
 import cl.dsoto.entities.RoleEntity;
 import cl.dsoto.entities.UserEntity;
 import cl.dsoto.mappers.UserMapper;
+import cl.dsoto.model.IdentityEventType;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.RegistrationResponse;
 import cl.dsoto.model.User;
 import cl.dsoto.model.UserStatus;
 import cl.dsoto.services.OnboardingEngine;
 import cl.dsoto.events.OnboardingEvent;
+import cl.dsoto.repositories.IdentityEventLogEntryRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.UserRepository;
@@ -49,6 +52,9 @@ public class DefaultUserService implements UserService {
 
     @Inject
     private OnboardingProcessRepository onboardingProcessRepository;
+
+    @Inject
+    private IdentityEventLogEntryRepository identityEventLogEntryRepository;
 
     @Inject
     private UserMapper userMapper;
@@ -144,8 +150,10 @@ public class DefaultUserService implements UserService {
             return new RegistrationResponse(existingRegistrationId.orElseGet(() -> {
                 String registrationId = UUID.randomUUID().toString();
                 onboardingEngine.applyEvent(OnboardingEvent.userRegistered(username, registrationId));
+                appendIdentityEvent(IdentityEventType.USER_REGISTERED, username, registrationId);
                 if (previous.getStatus() == UserStatus.ACTIVE) {
                     onboardingEngine.applyEvent(OnboardingEvent.emailVerified(username));
+                    appendIdentityEvent(IdentityEventType.EMAIL_VERIFIED, username, null);
                 }
                 return registrationId;
             }));
@@ -172,6 +180,7 @@ public class DefaultUserService implements UserService {
 
         User savedUser = userMapper.toModel(userRepository.save(userEntity));
         onboardingEngine.applyEvent(OnboardingEvent.userRegistered(savedUser.getUsername(), registrationId));
+        appendIdentityEvent(IdentityEventType.USER_REGISTERED, savedUser.getUsername(), registrationId);
         sendEmailConfirmation(savedUser.getUsername());
 
         return new RegistrationResponse(registrationId);
@@ -195,6 +204,7 @@ public class DefaultUserService implements UserService {
             user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
             onboardingEngine.applyEvent(OnboardingEvent.emailVerified(user.getUsername()));
+            appendIdentityEvent(IdentityEventType.EMAIL_VERIFIED, user.getUsername(), null);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to load JWT public key", e);
         }
@@ -258,6 +268,20 @@ public class DefaultUserService implements UserService {
         } catch (IOException e) {
             throw new IllegalStateException("Unable to load JWT private key", e);
         }
+    }
+
+    private void appendIdentityEvent(
+            IdentityEventType eventType,
+            String subject,
+            String registrationId
+    ) {
+        identityEventLogEntryRepository.save(IdentityEventLogEntryEntity.create(
+                UUID.randomUUID().toString(),
+                eventType,
+                subject,
+                registrationId,
+                Instant.now()
+        ));
     }
 
     private String buildConfirmationUrl(String token) {

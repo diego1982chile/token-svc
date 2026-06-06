@@ -68,6 +68,9 @@ The migration is intentionally deferred. When resumed:
   expose them through `GET /internal/identity-events?after=<cursor>&limit=<n>`.
 - `onboarding-svc` will poll that feed, persist its source cursor, and process
   each event idempotently.
+- The feed is identity-specific. Future KYC or billing integrations should not
+  be folded into `token-svc`; they should enter `onboarding-svc` through their
+  own adapters, usually provider webhooks.
 - The previously validated SNS/SQS approach remains a future option if fan-out,
   durable queueing, DLQ operations, or multiple independent consumers justify
   the added infrastructure.

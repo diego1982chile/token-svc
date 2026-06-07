@@ -12,11 +12,8 @@ import cl.dsoto.model.Role;
 import cl.dsoto.model.RegistrationResponse;
 import cl.dsoto.model.User;
 import cl.dsoto.model.UserStatus;
-import cl.dsoto.services.OnboardingEngine;
-import cl.dsoto.events.OnboardingEvent;
 import cl.dsoto.repositories.IdentityEventLogEntryRepository;
 import cl.dsoto.repositories.RoleRepository;
-import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.ConfigService;
 import cl.dsoto.services.CypherService;
@@ -51,9 +48,6 @@ public class DefaultUserService implements UserService {
     private RoleRepository roleRepository;
 
     @Inject
-    private OnboardingProcessRepository onboardingProcessRepository;
-
-    @Inject
     private IdentityEventLogEntryRepository identityEventLogEntryRepository;
 
     @Inject
@@ -67,9 +61,6 @@ public class DefaultUserService implements UserService {
 
     @Inject
     private DomainEventPublisher domainEventPublisher;
-
-    @Inject
-    private OnboardingEngine onboardingEngine;
 
     @ConfigProperty(name = "token.issuer")
     String jwtIssuer;
@@ -117,7 +108,6 @@ public class DefaultUserService implements UserService {
             userEntity.setStatus(UserStatus.PENDING);
 
             User savedUser = userMapper.toModel(userRepository.save(userEntity));
-            onboardingEngine.applyEvent(OnboardingEvent.userRegistered(savedUser.getUsername()));
             sendEmailConfirmation(savedUser.getUsername());
 
             return savedUser;
@@ -132,14 +122,6 @@ public class DefaultUserService implements UserService {
         }
 
         String username = email.trim().toLowerCase();
-        Optional<String> existingRegistrationId = onboardingProcessRepository.findById(username)
-                .map(process -> {
-                    if (process.getRegistrationId() == null || process.getRegistrationId().isBlank()) {
-                        process.setRegistrationId(UUID.randomUUID().toString());
-                        onboardingProcessRepository.save(process);
-                    }
-                    return process.getRegistrationId();
-                });
 
         UserEntity previous = userRepository.findByUsername(username);
         if (previous != null) {
@@ -147,14 +129,7 @@ public class DefaultUserService implements UserService {
                 sendEmailConfirmation(previous.getUsername());
             }
 
-            return new RegistrationResponse(existingRegistrationId.orElseGet(() -> {
-                String registrationId = UUID.randomUUID().toString();
-                onboardingEngine.applyEvent(OnboardingEvent.userRegistered(username, registrationId));
-                if (previous.getStatus() == UserStatus.ACTIVE) {
-                    onboardingEngine.applyEvent(OnboardingEvent.emailVerified(username));
-                }
-                return registrationId;
-            }));
+            return new RegistrationResponse(UUID.randomUUID().toString());
         }
 
         RoleEntity userRole = roleRepository.findByRolename("USER");
@@ -177,7 +152,6 @@ public class DefaultUserService implements UserService {
         userEntity.setStatus(UserStatus.PENDING);
 
         User savedUser = userMapper.toModel(userRepository.save(userEntity));
-        onboardingEngine.applyEvent(OnboardingEvent.userRegistered(savedUser.getUsername(), registrationId));
         appendIdentityEvent(IdentityEventType.USER_REGISTERED, savedUser.getUsername(), registrationId);
         sendEmailConfirmation(savedUser.getUsername());
 
@@ -201,7 +175,6 @@ public class DefaultUserService implements UserService {
 
             user.setStatus(UserStatus.ACTIVE);
             userRepository.save(user);
-            onboardingEngine.applyEvent(OnboardingEvent.emailVerified(user.getUsername()));
             appendIdentityEvent(IdentityEventType.EMAIL_VERIFIED, user.getUsername(), null);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to load JWT public key", e);
@@ -238,7 +211,6 @@ public class DefaultUserService implements UserService {
     @Override
     public void deleteUser(String id) {
         userRepository.deleteById(id);
-        onboardingProcessRepository.deleteById(id);
     }
 
     @Override

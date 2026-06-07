@@ -5,10 +5,7 @@ import cl.dsoto.entities.UserEntity;
 import cl.dsoto.model.IdentityEventType;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.UserStatus;
-import cl.dsoto.model.OnboardingState;
-import cl.dsoto.entities.OnboardingProcess;
 import cl.dsoto.repositories.IdentityEventLogEntryRepository;
-import cl.dsoto.repositories.OnboardingProcessRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
 import cl.dsoto.services.ConfigService;
@@ -68,9 +65,6 @@ public class UserResourceTest {
 
     @Inject
     private RoleRepository roleRepository;
-
-    @Inject
-    private OnboardingProcessRepository onboardingProcessRepository;
 
     @Inject
     private IdentityEventLogEntryRepository identityEventLogEntryRepository;
@@ -238,7 +232,6 @@ public class UserResourceTest {
 
         assertThat(user.getStatus(), is(UserStatus.PENDING));
         assertThat(user.getRoles().stream().anyMatch(role -> "USER".equals(role.getRolename())), is(true));
-        assertThat(onboardingProcessRepository.findById(email).orElseThrow().getRegistrationId(), is(registrationId));
 
         var identityEvents = identityEventLogEntryRepository.findAll();
         assertThat(identityEvents.size(), is(1));
@@ -541,33 +534,6 @@ public class UserResourceTest {
                 .body("registrationId", notNullValue());
 
         assertThat(identityEventLogEntryRepository.findAll().isEmpty(), is(true));
-    }
-
-    @Test
-    public void shouldDeleteOnboardingProcessWhenUserIsDeleted() {
-        String email = "delete.with.onboarding@example.com";
-        RoleEntity userRole = getOrCreateRole("USER");
-        UserEntity user = UserEntity.builder()
-                .username(email)
-                .password(BcryptUtil.bcryptHash("secret123"))
-                .status(UserStatus.ACTIVE)
-                .roles(Set.of(userRole))
-                .build();
-        userRepository.save(user);
-        onboardingProcessRepository.save(OnboardingProcess.builder()
-                .username(email)
-                .currentState(OnboardingState.EMAIL_VERIFIED)
-                .build());
-
-        given()
-                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
-                .when()
-                .delete("/api/users/delete/" + email)
-                .then()
-                .statusCode(HttpStatus.SC_OK);
-
-        assertThat(userRepository.findByUsername(email), nullValue());
-        assertThat(onboardingProcessRepository.findById(email).isEmpty(), is(true));
     }
 
     @Test

@@ -257,6 +257,60 @@ public class UserResourceTest {
     }
 
     @Test
+    public void shouldPageIdentityEventFeedByCursor() {
+        String firstEmail = "feed.first@example.com";
+        String secondEmail = "feed.second@example.com";
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", firstEmail,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED);
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", secondEmail,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED);
+
+        Number firstCursor = given()
+                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
+                .queryParam("after", 0)
+                .queryParam("limit", 1)
+                .when()
+                .get("/api/internal/identity-events")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("items.size()", is(1))
+                .body("items[0].subject", is(firstEmail))
+                .body("hasMore", is(true))
+                .extract()
+                .path("nextCursor");
+
+        given()
+                .auth().form("admin", "admin", new FormAuthConfig("/token-service/api/auth/login", "j_username", "j_password"))
+                .queryParam("after", firstCursor.longValue())
+                .queryParam("limit", 1)
+                .when()
+                .get("/api/internal/identity-events")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("items.size()", is(1))
+                .body("items[0].subject", is(secondEmail))
+                .body("hasMore", is(false));
+    }
+
+    @Test
     public void shouldAppendEmailVerifiedIdentityEventWhenEmailIsConfirmed() {
         String email = "confirmed.event@example.com";
         String token = cypherService.generateEmailConfirmationJWT(
@@ -292,6 +346,34 @@ public class UserResourceTest {
         assertThat(identityEvents.stream()
                 .anyMatch(event -> event.getEventType() == IdentityEventType.EMAIL_VERIFIED
                         && email.equals(event.getSubject())), is(true));
+    }
+
+    @Test
+    public void shouldNotAppendEmailVerifiedIdentityEventWhenUserIsAlreadyActive() {
+        String email = "already.active.confirm@example.com";
+        RoleEntity userRole = getOrCreateRole("USER");
+        UserEntity user = UserEntity.builder()
+                .username(email)
+                .password(BcryptUtil.bcryptHash("secret123"))
+                .status(UserStatus.ACTIVE)
+                .roles(Set.of(userRole))
+                .build();
+        userRepository.save(user);
+        String token = cypherService.generateEmailConfirmationJWT(
+                keyPair.getPrivate(),
+                email,
+                "https://apis.internal.dsoto.cl",
+                "identity-svc"
+        );
+
+        given()
+                .queryParam("token", token)
+                .when()
+                .get("/api/users/confirm-email")
+                .then()
+                .statusCode(HttpStatus.SC_OK);
+
+        assertThat(identityEventLogEntryRepository.findAll().isEmpty(), is(true));
     }
 
     @Test

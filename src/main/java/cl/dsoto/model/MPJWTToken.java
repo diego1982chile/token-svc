@@ -136,7 +136,9 @@ public class MPJWTToken {
         jsonObject.appendField("iat", iat / 1000);
         jsonObject.appendField("sub", sub);
         jsonObject.appendField("upn", upn);
-        jsonObject.appendField("preferred_username", preferredUsername);
+        if (preferredUsername != null) {
+            jsonObject.appendField("preferred_username", preferredUsername);
+        }
 
         if (additionalClaims != null) {
             for (Map.Entry<String, String> entry : additionalClaims.entrySet()) {

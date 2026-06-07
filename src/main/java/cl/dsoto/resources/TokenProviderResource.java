@@ -8,12 +8,14 @@ import cl.dsoto.services.CypherService;
 import cl.dsoto.services.UserService;
 import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.annotation.security.PermitAll;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
+import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -30,9 +32,12 @@ import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.Date;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
@@ -46,6 +51,8 @@ public class TokenProviderResource {
 
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String USER_ROLE = "USER";
+    private static final String ONBOARDING_SERVICE_CLIENT_ID = "onboarding-svc";
+    private static final long ACCESS_TOKEN_TTL_SECONDS = 3600L;
 
 
     @Inject
@@ -72,6 +79,15 @@ public class TokenProviderResource {
 
     @ConfigProperty(name = "token.access-audiences")
     List<String> jwtAudiences;
+
+    @ConfigProperty(name = "token.service-client.audiences")
+    List<String> serviceClientAudiences;
+
+    @ConfigProperty(name = "token.service-client.onboarding-svc.secret")
+    String onboardingServiceClientSecret;
+
+    @ConfigProperty(name = "token.service-client.onboarding-svc.scopes")
+    List<String> onboardingServiceClientScopes;
 
     @ConfigProperty(name = "quarkus.http.root-path")
     String rootPath;
@@ -146,6 +162,47 @@ public class TokenProviderResource {
     }
 
     @POST
+    @PermitAll
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("client-credentials")
+    public Response clientCredentials(
+            @FormParam("client_id") String clientId,
+            @FormParam("client_secret") String clientSecret,
+            @FormParam("scope") String scope
+    ) {
+        if (!ONBOARDING_SERVICE_CLIENT_ID.equals(clientId)
+                || onboardingServiceClientSecret == null
+                || onboardingServiceClientSecret.isBlank()
+                || !onboardingServiceClientSecret.equals(clientSecret)) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+
+        List<String> requestedScopes = parseRequestedScopes(scope);
+        if (requestedScopes.isEmpty() || !allowedScopes().containsAll(requestedScopes)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "invalid_scope"))
+                    .build();
+        }
+
+        String jwt = cypherService.generateJWT(
+                key,
+                clientId,
+                requestedScopes,
+                jwtIssuer,
+                serviceClientAudiences
+        );
+
+        return Response.status(Response.Status.OK)
+                .entity(Map.of(
+                        "access_token", jwt,
+                        "token_type", "Bearer",
+                        "expires_in", ACCESS_TOKEN_TTL_SECONDS
+                ))
+                .build();
+    }
+
+    @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("logout")
     public Response logout(@Context HttpServletRequest request) {
@@ -181,6 +238,19 @@ public class TokenProviderResource {
             return "/";
         }
         return value.startsWith("/") ? value : "/" + value;
+    }
+
+    private List<String> parseRequestedScopes(String scope) {
+        if (scope == null || scope.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(scope.trim().split("\\s+"))
+                .filter(value -> !value.isBlank())
+                .toList();
+    }
+
+    private Set<String> allowedScopes() {
+        return onboardingServiceClientScopes.stream().collect(Collectors.toSet());
     }
 
 

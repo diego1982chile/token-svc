@@ -21,7 +21,7 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @RequestScoped
 @Produces(APPLICATION_JSON)
 @Path("internal/identity-events")
-@RolesAllowed("ADMIN")
+@RolesAllowed({"ADMIN", "token.identity-events.read"})
 public class DefaultIdentityEventFeedWebService implements IdentityEventFeedWebService {
 
     private static final int DEFAULT_LIMIT = 100;

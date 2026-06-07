@@ -25,6 +25,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import com.nimbusds.jwt.SignedJWT;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,9 +37,10 @@ import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +48,8 @@ import java.util.Set;
 import static io.restassured.RestAssured.given;
 import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -76,7 +84,7 @@ public class UserResourceTest {
     private KeyPair keyPair;
 
     @BeforeEach
-    public void init() throws NoSuchAlgorithmException, IOException {
+    public void init() throws IOException {
         identityEventLogEntryRepository.deleteAll();
 
         RoleEntity adminRole = getOrCreateRole("ADMIN");
@@ -98,12 +106,28 @@ public class UserResourceTest {
         userRepository.save(user);
         userRepository.save(admin);
 
-        KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
-        generator.initialize(2048);
-        keyPair = generator.generateKeyPair();
+        keyPair = loadApplicationKeyPair();
 
         Mockito.when(configService.getPrivateKey()).thenReturn(keyPair.getPrivate());
         Mockito.when(configService.getPublicKey()).thenReturn(keyPair.getPublic());
+    }
+
+    private KeyPair loadApplicationKeyPair() throws IOException {
+        InputStream inputStream = UserResourceTest.class.getResourceAsStream("/privateKey.pem");
+        if (inputStream == null) {
+            throw new IOException("Private key resource not found");
+        }
+
+        try (inputStream;
+             PEMParser pemParser = new PEMParser(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            Object object = pemParser.readObject();
+            if (!(object instanceof PEMKeyPair)) {
+                throw new IOException("Unsupported private key format");
+            }
+            return new JcaPEMKeyConverter()
+                    .setProvider(new BouncyCastleProvider())
+                    .getKeyPair((PEMKeyPair) object);
+        }
     }
 
     private RoleEntity getOrCreateRole(String rolename) {
@@ -254,6 +278,81 @@ public class UserResourceTest {
                 .body("items[0].cursor", notNullValue())
                 .body("nextCursor", notNullValue())
                 .body("hasMore", is(false));
+    }
+
+    @Test
+    public void shouldIssueServiceTokenForIdentityEventFeedScope() throws Exception {
+        String token = given()
+                .contentType("application/x-www-form-urlencoded")
+                .formParam("client_id", "onboarding-svc")
+                .formParam("client_secret", "test-onboarding-secret")
+                .formParam("scope", "token.identity-events.read")
+                .when()
+                .post("/api/auth/client-credentials")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("token_type", is("Bearer"))
+                .body("expires_in", is(3600))
+                .extract()
+                .path("access_token");
+
+        var claims = SignedJWT.parse(token).getJWTClaimsSet();
+        assertThat(claims.getSubject(), is("onboarding-svc"));
+        assertThat(claims.getAudience(), containsInAnyOrder("token-svc"));
+        assertThat(claims.getStringListClaim("groups"), contains("token.identity-events.read"));
+    }
+
+    @Test
+    public void shouldRejectServiceTokenWhenClientSecretIsInvalid() {
+        given()
+                .contentType("application/x-www-form-urlencoded")
+                .formParam("client_id", "onboarding-svc")
+                .formParam("client_secret", "wrong-secret")
+                .formParam("scope", "token.identity-events.read")
+                .when()
+                .post("/api/auth/client-credentials")
+                .then()
+                .statusCode(HttpStatus.SC_UNAUTHORIZED);
+    }
+
+    @Test
+    public void shouldExposeIdentityEventFeedForServiceTokenScope() {
+        String email = "feed.service-token@example.com";
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED);
+
+        String token = given()
+                .contentType("application/x-www-form-urlencoded")
+                .formParam("client_id", "onboarding-svc")
+                .formParam("client_secret", "test-onboarding-secret")
+                .formParam("scope", "token.identity-events.read")
+                .when()
+                .post("/api/auth/client-credentials")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .extract()
+                .path("access_token");
+
+        given()
+                .auth().oauth2(token)
+                .queryParam("after", 0)
+                .queryParam("limit", 10)
+                .when()
+                .get("/api/internal/identity-events")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("items[0].eventType", is("USER_REGISTERED"))
+                .body("items[0].subject", is(email))
+                .body("items[0].cursor", notNullValue());
     }
 
     @Test

@@ -1,7 +1,8 @@
-package cl.dsoto.resources;
+package cl.dsoto.webservice.impl;
 
 import cl.dsoto.model.ResendConfirmationRequest;
 import cl.dsoto.services.UserService;
+import cl.dsoto.webservice.UserEmailConfirmationWebService;
 import io.quarkus.logging.Log;
 import jakarta.annotation.security.PermitAll;
 import jakarta.enterprise.context.RequestScoped;
@@ -23,25 +24,24 @@ import static jakarta.ws.rs.core.MediaType.APPLICATION_JSON;
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
 @Path("users")
-public class UserEmailConfirmationResource {
+public class DefaultUserEmailConfirmationWebService implements UserEmailConfirmationWebService {
 
     @Inject
     UserService userService;
 
     @GET
     @Path("confirm-email")
+    @Override
     public Response confirmEmail(@QueryParam("token") String token) {
         try {
             userService.confirmEmail(token);
             return Response.ok(Map.of("message", "Correo confirmado")).build();
-        }
-        catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException e) {
             Log.error(e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("message", "Link de confirmacion invalido o expirado"))
                     .build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.error(e.getMessage());
         }
         return Response.serverError().build();
@@ -49,6 +49,7 @@ public class UserEmailConfirmationResource {
 
     @POST
     @Path("resend-confirmation")
+    @Override
     public Response resendConfirmation(ResendConfirmationRequest request) {
         try {
             String email = request == null ? null : request.getEmail();
@@ -56,11 +57,9 @@ public class UserEmailConfirmationResource {
             return Response.ok(Map.of(
                     "message", "Si el correo existe y requiere confirmacion, enviaremos un nuevo link."
             )).build();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Log.error(e.getMessage());
         }
         return Response.serverError().build();
     }
-
 }

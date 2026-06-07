@@ -1,6 +1,7 @@
-package cl.dsoto.resources;
+package cl.dsoto.webservice.impl;
 
 import cl.dsoto.services.ConfigService;
+import cl.dsoto.webservice.JwksWebService;
 import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -17,7 +18,7 @@ import java.util.Map;
 
 @Path("/.well-known/jwks.json")
 @Produces(MediaType.APPLICATION_JSON)
-public class JwksResource {
+public class DefaultJwksWebService implements JwksWebService {
 
     private static final String KEY_ID = "apisKey";
 
@@ -26,6 +27,7 @@ public class JwksResource {
 
     @GET
     @PermitAll
+    @Override
     public Map<String, Object> getJwks() throws IOException {
         RSAPublicKey publicKey = (RSAPublicKey) configService.getPublicKey();
         return Map.of("keys", List.of(Map.of(

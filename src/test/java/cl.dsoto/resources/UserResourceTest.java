@@ -291,8 +291,51 @@ public class UserResourceTest {
 
         var claims = SignedJWT.parse(token).getJWTClaimsSet();
         assertThat(claims.getSubject(), is("onboarding-svc"));
-        assertThat(claims.getAudience(), containsInAnyOrder("token-svc"));
+        assertThat(claims.getAudience(), containsInAnyOrder("token-svc", "profile-service"));
         assertThat(claims.getStringListClaim("groups"), contains("token.identity-events.read"));
+    }
+
+    @Test
+    public void shouldIssueServiceTokenForProfileEventFeedScope() throws Exception {
+        String token = given()
+                .contentType("application/x-www-form-urlencoded")
+                .formParam("client_id", "onboarding-svc")
+                .formParam("client_secret", "test-onboarding-secret")
+                .formParam("scope", "profile.profile-events.read")
+                .when()
+                .post("/api/auth/client-credentials")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("token_type", is("Bearer"))
+                .body("expires_in", is(3600))
+                .extract()
+                .path("access_token");
+
+        var claims = SignedJWT.parse(token).getJWTClaimsSet();
+        assertThat(claims.getSubject(), is("onboarding-svc"));
+        assertThat(claims.getAudience(), containsInAnyOrder("token-svc", "profile-service"));
+        assertThat(claims.getStringListClaim("groups"), contains("profile.profile-events.read"));
+    }
+
+    @Test
+    public void shouldIssueServiceTokenForAnyConfiguredServiceClient() throws Exception {
+        String token = given()
+                .contentType("application/x-www-form-urlencoded")
+                .formParam("client_id", "profile-svc")
+                .formParam("client_secret", "test-profile-secret")
+                .formParam("scope", "profile.profile-events.read")
+                .when()
+                .post("/api/auth/client-credentials")
+                .then()
+                .statusCode(HttpStatus.SC_OK)
+                .body("token_type", is("Bearer"))
+                .extract()
+                .path("access_token");
+
+        var claims = SignedJWT.parse(token).getJWTClaimsSet();
+        assertThat(claims.getSubject(), is("profile-svc"));
+        assertThat(claims.getAudience(), contains("profile-service"));
+        assertThat(claims.getStringListClaim("groups"), contains("profile.profile-events.read"));
     }
 
     @Test

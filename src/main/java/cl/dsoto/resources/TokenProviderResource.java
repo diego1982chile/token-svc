@@ -5,6 +5,7 @@ import cl.dsoto.model.Role;
 import cl.dsoto.services.RoleService;
 import cl.dsoto.services.ConfigService;
 import cl.dsoto.services.CypherService;
+import cl.dsoto.services.ServiceClientRegistry;
 import cl.dsoto.services.UserService;
 import io.quarkus.logging.Log;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -36,8 +37,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import static jakarta.ws.rs.core.HttpHeaders.AUTHORIZATION;
 
@@ -51,7 +51,6 @@ public class TokenProviderResource {
 
     private static final String ADMIN_ROLE = "ADMIN";
     private static final String USER_ROLE = "USER";
-    private static final String ONBOARDING_SERVICE_CLIENT_ID = "onboarding-svc";
     private static final long ACCESS_TOKEN_TTL_SECONDS = 3600L;
 
 
@@ -74,20 +73,14 @@ public class TokenProviderResource {
     @Inject
     private CypherService cypherService;
 
+    @Inject
+    private ServiceClientRegistry serviceClientRegistry;
+
     @ConfigProperty(name = "token.issuer")
     String jwtIssuer;
 
     @ConfigProperty(name = "token.access-audiences")
     List<String> jwtAudiences;
-
-    @ConfigProperty(name = "token.service-client.audiences")
-    List<String> serviceClientAudiences;
-
-    @ConfigProperty(name = "token.service-client.onboarding-svc.secret")
-    String onboardingServiceClientSecret;
-
-    @ConfigProperty(name = "token.service-client.onboarding-svc.scopes")
-    List<String> onboardingServiceClientScopes;
 
     @ConfigProperty(name = "quarkus.http.root-path")
     String rootPath;
@@ -171,15 +164,14 @@ public class TokenProviderResource {
             @FormParam("client_secret") String clientSecret,
             @FormParam("scope") String scope
     ) {
-        if (!ONBOARDING_SERVICE_CLIENT_ID.equals(clientId)
-                || onboardingServiceClientSecret == null
-                || onboardingServiceClientSecret.isBlank()
-                || !onboardingServiceClientSecret.equals(clientSecret)) {
+        Optional<ServiceClientRegistry.ServiceClient> serviceClient =
+                serviceClientRegistry.authenticate(clientId, clientSecret);
+        if (serviceClient.isEmpty()) {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
         List<String> requestedScopes = parseRequestedScopes(scope);
-        if (requestedScopes.isEmpty() || !allowedScopes().containsAll(requestedScopes)) {
+        if (requestedScopes.isEmpty() || !serviceClient.get().scopes().containsAll(requestedScopes)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "invalid_scope"))
                     .build();
@@ -187,10 +179,10 @@ public class TokenProviderResource {
 
         String jwt = cypherService.generateJWT(
                 key,
-                clientId,
+                serviceClient.get().clientId(),
                 requestedScopes,
                 jwtIssuer,
-                serviceClientAudiences
+                serviceClient.get().audiences()
         );
 
         return Response.status(Response.Status.OK)
@@ -248,10 +240,5 @@ public class TokenProviderResource {
                 .filter(value -> !value.isBlank())
                 .toList();
     }
-
-    private Set<String> allowedScopes() {
-        return onboardingServiceClientScopes.stream().collect(Collectors.toSet());
-    }
-
 
 }

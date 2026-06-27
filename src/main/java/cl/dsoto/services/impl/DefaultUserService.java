@@ -71,6 +71,9 @@ public class DefaultUserService implements UserService {
     @ConfigProperty(name = "app.public-url")
     String publicUrl;
 
+    @ConfigProperty(name = "email.confirmation.ui-url")
+    Optional<String> emailConfirmationUiUrl;
+
     @ConfigProperty(name = "quarkus.http.root-path", defaultValue = "/")
     String rootPath;
 
@@ -255,9 +258,26 @@ public class DefaultUserService implements UserService {
     }
 
     private String buildConfirmationUrl(String token) {
+        if (emailConfirmationUiUrl.isPresent() && !emailConfirmationUiUrl.orElseThrow().isBlank()) {
+            return appendQueryParam(
+                    normalizeUrl(emailConfirmationUiUrl.orElseThrow()),
+                    "confirmEmailToken",
+                    token
+            );
+        }
+
         return resolvePublicBaseUrl()
                 + "/users/confirm-email?token="
                 + URLEncoder.encode(token, StandardCharsets.UTF_8);
+    }
+
+    private String appendQueryParam(String url, String name, String value) {
+        String separator = url.contains("?") ? "&" : "?";
+        return url
+                + separator
+                + URLEncoder.encode(name, StandardCharsets.UTF_8)
+                + "="
+                + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     private String resolvePublicBaseUrl() {
@@ -277,10 +297,14 @@ public class DefaultUserService implements UserService {
     }
 
     private String normalizePublicUrl() {
-        if (publicUrl.endsWith("/")) {
-            return publicUrl.substring(0, publicUrl.length() - 1);
+        return normalizeUrl(publicUrl);
+    }
+
+    private String normalizeUrl(String url) {
+        if (url.endsWith("/")) {
+            return url.substring(0, url.length() - 1);
         }
-        return publicUrl;
+        return url;
     }
 
     private String normalizeRootPath(String value) {

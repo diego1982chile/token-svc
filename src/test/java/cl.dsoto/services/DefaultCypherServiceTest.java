@@ -24,12 +24,12 @@ class DefaultCypherServiceTest {
                 "user@example.com",
                 List.of("USER"),
                 "https://apis.internal.dsoto.cl",
-                List.of("identity-svc", "onboarding-svc")
+                List.of("identity-svc", "onboarding-svc", "profile-service")
         );
 
         assertThat(
                 SignedJWT.parse(token).getJWTClaimsSet().getAudience(),
-                containsInAnyOrder("identity-svc", "onboarding-svc")
+                containsInAnyOrder("identity-svc", "onboarding-svc", "profile-service")
         );
     }
 }

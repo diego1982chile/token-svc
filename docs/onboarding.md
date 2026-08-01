@@ -192,14 +192,22 @@ Event envelope:
   "occurredAt": "2026-05-22T21:00:00Z",
   "userId": "user@example.com",
   "email": "user@example.com",
-  "confirmationUrl": "http://localhost:9090/token-service/users/confirm-email?token=...",
+  "confirmationUrl": "http://localhost:8000/?ojr=onboarding&confirmEmailToken=...",
   "tokenExpiresAt": "2026-05-23T21:00:00Z"
 }
 ```
 
 `token-svc` builds the full `confirmationUrl`; an external email service should not need to know token internals or route construction.
 
-The confirmation page is centralized in `token-svc` at `/users/confirm-email`. After a successful confirmation, the page shows a neutral completion message so callers can continue their own onboarding flow outside this service.
+The product confirmation experience is handled by the frontend. In local Docker
+the frontend origin is configured through `FRONTEND_PUBLIC_URL`, and
+`EMAIL_CONFIRMATION_UI_URL` can still override the full confirmation URL when a
+specific route is needed. The frontend receives `confirmEmailToken` and calls
+`token-svc` to complete the confirmation.
+
+The backend endpoint `/users/confirm-email` remains available as a technical
+confirmation endpoint and fallback UI, but it is not the primary product link
+sent in onboarding emails.
 
 Example consolidated view:
 

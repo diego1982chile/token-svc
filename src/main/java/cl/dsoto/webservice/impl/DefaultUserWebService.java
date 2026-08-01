@@ -2,7 +2,11 @@ package cl.dsoto.webservice.impl;
 
 import cl.dsoto.model.RegistrationRequest;
 import cl.dsoto.model.ResendConfirmationRequest;
+import cl.dsoto.model.Role;
 import cl.dsoto.model.User;
+import cl.dsoto.services.ActiveUserAlreadyExistsException;
+import cl.dsoto.services.ConfigService;
+import cl.dsoto.services.CypherService;
 import cl.dsoto.services.UserService;
 import cl.dsoto.webservice.UserWebService;
 import io.quarkus.logging.Log;
@@ -20,7 +24,10 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.io.IOException;
+import java.security.PrivateKey;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +41,18 @@ public class DefaultUserWebService implements UserWebService {
 
     @Inject
     UserService userService;
+
+    @Inject
+    ConfigService configService;
+
+    @Inject
+    CypherService cypherService;
+
+    @ConfigProperty(name = "token.issuer")
+    String jwtIssuer;
+
+    @ConfigProperty(name = "token.access-audiences")
+    List<String> jwtAudiences;
 
     @GET
     @Path("/me")
@@ -67,6 +86,10 @@ public class DefaultUserWebService implements UserWebService {
             }
 
             return Response.accepted(userService.registerUser(request.getEmail(), request.getPassword())).build();
+        } catch (ActiveUserAlreadyExistsException e) {
+            return Response.status(Response.Status.CONFLICT)
+                    .entity(Map.of("message", "ACCOUNT_ALREADY_EXISTS"))
+                    .build();
         } catch (Exception e) {
             Log.error(e.getMessage(), e);
         }
@@ -106,8 +129,15 @@ public class DefaultUserWebService implements UserWebService {
     @Override
     public Response confirmEmail(@QueryParam("token") String token) {
         try {
-            userService.confirmEmail(token);
-            return Response.ok(Map.of("message", "Correo confirmado")).build();
+            User user = userService.confirmEmail(token);
+            String accessToken = generateAccessToken(user);
+            return Response.ok(Map.of(
+                    "message", "Correo confirmado",
+                    "token", accessToken,
+                    "access_token", accessToken,
+                    "token_type", "Bearer",
+                    "expires_in", 3600
+            )).build();
         } catch (IllegalArgumentException e) {
             Log.error(e.getMessage());
             return Response.status(Response.Status.BAD_REQUEST)
@@ -117,6 +147,14 @@ public class DefaultUserWebService implements UserWebService {
             Log.error(e.getMessage());
         }
         return Response.serverError().build();
+    }
+
+    private String generateAccessToken(User user) throws IOException {
+        PrivateKey privateKey = configService.getPrivateKey();
+        List<String> roles = user.getRoles().stream()
+                .map(Role::getRolename)
+                .toList();
+        return cypherService.generateJWT(privateKey, user.getUsername(), roles, jwtIssuer, jwtAudiences);
     }
 
     @POST

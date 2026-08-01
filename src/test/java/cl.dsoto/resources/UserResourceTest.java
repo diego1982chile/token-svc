@@ -2,6 +2,8 @@ package cl.dsoto.resources;
 
 import cl.dsoto.entities.RoleEntity;
 import cl.dsoto.entities.UserEntity;
+import cl.dsoto.events.DomainEventPublisher;
+import cl.dsoto.events.EmailConfirmationRequested;
 import cl.dsoto.model.IdentityEventType;
 import cl.dsoto.model.Role;
 import cl.dsoto.model.UserStatus;
@@ -30,6 +32,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
@@ -55,6 +58,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 
 @QuarkusTest
 @QuarkusTestResource(H2DatabaseTestResource.class)
@@ -74,6 +78,9 @@ public class UserResourceTest {
 
     @InjectMock
     private ConfigService configService;
+
+    @InjectMock
+    private DomainEventPublisher domainEventPublisher;
 
     private KeyPair keyPair;
 
@@ -238,6 +245,33 @@ public class UserResourceTest {
         assertThat(identityEvents.get(0).getEventType(), is(IdentityEventType.USER_REGISTERED));
         assertThat(identityEvents.get(0).getSubject(), is(email));
         assertThat(identityEvents.get(0).getRegistrationId(), is(registrationId));
+    }
+
+    @Test
+    public void shouldSendEmailConfirmationToFrontendOnRegistration() {
+        String email = "frontend.confirmation@example.com";
+
+        given()
+                .contentType("application/json")
+                .body(Map.of(
+                        "email", email,
+                        "password", "secret123"
+                ))
+                .when()
+                .post("/api/users/register")
+                .then()
+                .statusCode(HttpStatus.SC_ACCEPTED);
+
+        ArgumentCaptor<EmailConfirmationRequested> eventCaptor =
+                ArgumentCaptor.forClass(EmailConfirmationRequested.class);
+        verify(domainEventPublisher).publish(eventCaptor.capture());
+
+        EmailConfirmationRequested event = eventCaptor.getValue();
+        assertThat(event.email(), is(email));
+        assertThat(
+                event.confirmationUrl().startsWith("http://localhost:8000/?ojr=onboarding&confirmEmailToken="),
+                is(true)
+        );
     }
 
     @Test
@@ -523,7 +557,7 @@ public class UserResourceTest {
     }
 
     @Test
-    public void shouldReturnRegistrationIdForExistingActiveUser() {
+    public void shouldRejectRegistrationForExistingActiveUser() {
         String email = "active.without.onboarding@example.com";
         RoleEntity userRole = getOrCreateRole("USER");
         UserEntity user = UserEntity.builder()
@@ -534,7 +568,7 @@ public class UserResourceTest {
                 .build();
         userRepository.save(user);
 
-        String registrationId = given()
+        given()
                 .contentType("application/json")
                 .body(Map.of(
                         "email", email,
@@ -543,12 +577,9 @@ public class UserResourceTest {
                 .when()
                 .post("/api/users/register")
                 .then()
-                .statusCode(HttpStatus.SC_ACCEPTED)
-                .body("registrationId", notNullValue())
-                .extract()
-                .path("registrationId");
+                .statusCode(HttpStatus.SC_CONFLICT)
+                .body("message", is("ACCOUNT_ALREADY_EXISTS"));
 
-        assertThat(registrationId, notNullValue());
         assertThat(identityEventLogEntryRepository.findAll().isEmpty(), is(true));
     }
 

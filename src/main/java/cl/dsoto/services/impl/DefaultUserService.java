@@ -15,14 +15,13 @@ import cl.dsoto.model.UserStatus;
 import cl.dsoto.repositories.IdentityEventLogEntryRepository;
 import cl.dsoto.repositories.RoleRepository;
 import cl.dsoto.repositories.UserRepository;
+import cl.dsoto.services.ActiveUserAlreadyExistsException;
 import cl.dsoto.services.ConfigService;
 import cl.dsoto.services.CypherService;
 import cl.dsoto.services.UserService;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.RequestScoped;
 import jakarta.inject.Inject;
-import jakarta.inject.Provider;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -68,20 +67,17 @@ public class DefaultUserService implements UserService {
     @ConfigProperty(name = "token.audience")
     String jwtAudience;
 
-    @ConfigProperty(name = "app.public-url")
-    String publicUrl;
-
     @ConfigProperty(name = "email.confirmation.ui-url")
     Optional<String> emailConfirmationUiUrl;
 
-    @ConfigProperty(name = "quarkus.http.root-path", defaultValue = "/")
-    String rootPath;
+    @ConfigProperty(name = "frontend.public-url")
+    String frontendPublicUrl;
+
+    @ConfigProperty(name = "email.confirmation.route")
+    String emailConfirmationRoute;
 
     @ConfigProperty(name = "email.confirmation.ttl-hours", defaultValue = "24")
     long emailConfirmationTtlHours;
-
-    @Inject
-    Provider<HttpServletRequest> requestProvider;
 
     @Override
     @Transactional
@@ -128,10 +124,11 @@ public class DefaultUserService implements UserService {
 
         UserEntity previous = userRepository.findByUsername(username);
         if (previous != null) {
-            if (previous.getStatus() != UserStatus.ACTIVE) {
-                sendEmailConfirmation(previous.getUsername());
+            if (previous.getStatus() == UserStatus.ACTIVE) {
+                throw new ActiveUserAlreadyExistsException(username);
             }
 
+            sendEmailConfirmation(previous.getUsername());
             return new RegistrationResponse(UUID.randomUUID().toString());
         }
 
@@ -163,7 +160,7 @@ public class DefaultUserService implements UserService {
 
     @Transactional
     @Override
-    public void confirmEmail(String token) {
+    public User confirmEmail(String token) {
         try {
             String username = cypherService.validateEmailConfirmationJWT(token, configService.getPublicKey(), jwtIssuer, jwtAudience);
             UserEntity user = userRepository.findByUsername(username);
@@ -173,12 +170,13 @@ public class DefaultUserService implements UserService {
             }
 
             if (user.getStatus() == UserStatus.ACTIVE) {
-                return;
+                return userMapper.toModel(user);
             }
 
             user.setStatus(UserStatus.ACTIVE);
-            userRepository.save(user);
+            UserEntity savedUser = userRepository.save(user);
             appendIdentityEvent(IdentityEventType.EMAIL_VERIFIED, user.getUsername(), null);
+            return userMapper.toModel(savedUser);
         } catch (IOException e) {
             throw new IllegalStateException("Unable to load JWT public key", e);
         }
@@ -258,17 +256,15 @@ public class DefaultUserService implements UserService {
     }
 
     private String buildConfirmationUrl(String token) {
-        if (emailConfirmationUiUrl.isPresent() && !emailConfirmationUiUrl.orElseThrow().isBlank()) {
-            return appendQueryParam(
-                    normalizeUrl(emailConfirmationUiUrl.orElseThrow()),
-                    "confirmEmailToken",
-                    token
-            );
-        }
+        String confirmationUrl = emailConfirmationUiUrl
+                .filter(value -> !value.isBlank())
+                .orElseGet(this::defaultFrontendConfirmationUrl);
 
-        return resolvePublicBaseUrl()
-                + "/users/confirm-email?token="
-                + URLEncoder.encode(token, StandardCharsets.UTF_8);
+        return appendQueryParam(
+                normalizeUrl(confirmationUrl),
+                "confirmEmailToken",
+                token
+        );
     }
 
     private String appendQueryParam(String url, String name, String value) {
@@ -280,26 +276,6 @@ public class DefaultUserService implements UserService {
                 + URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    private String resolvePublicBaseUrl() {
-        try {
-            HttpServletRequest request = requestProvider.get();
-            if (request == null) {
-                return normalizePublicUrl();
-            }
-
-            String requestUrl = request.getRequestURL().toString();
-            String requestUri = request.getRequestURI();
-            String origin = requestUrl.substring(0, requestUrl.length() - requestUri.length());
-            return origin + normalizeRootPath(rootPath);
-        } catch (RuntimeException e) {
-            return normalizePublicUrl();
-        }
-    }
-
-    private String normalizePublicUrl() {
-        return normalizeUrl(publicUrl);
-    }
-
     private String normalizeUrl(String url) {
         if (url.endsWith("/")) {
             return url.substring(0, url.length() - 1);
@@ -307,16 +283,14 @@ public class DefaultUserService implements UserService {
         return url;
     }
 
-    private String normalizeRootPath(String value) {
-        if (value == null || value.isBlank() || "/".equals(value)) {
-            return "";
+    private String defaultFrontendConfirmationUrl() {
+        String route = emailConfirmationRoute == null || emailConfirmationRoute.isBlank()
+                ? "/"
+                : emailConfirmationRoute;
+        if (!route.startsWith("/")) {
+            route = "/" + route;
         }
-
-        String normalized = value.startsWith("/") ? value : "/" + value;
-        if (normalized.endsWith("/")) {
-            return normalized.substring(0, normalized.length() - 1);
-        }
-        return normalized;
+        return normalizeUrl(frontendPublicUrl) + route;
     }
 
 }

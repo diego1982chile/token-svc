@@ -14,7 +14,7 @@ services:
       JAVA_DEBUG_PORT: "*:8000"
       JWT_ISSUER: ${JWT_ISSUER}
       JWT_AUDIENCE: ${JWT_AUDIENCE:-identity-svc}
-      JWT_ACCESS_AUDIENCES: ${JWT_ACCESS_AUDIENCES:-identity-svc,onboarding-svc}
+      JWT_ACCESS_AUDIENCES: ${JWT_ACCESS_AUDIENCES:-identity-svc,onboarding-svc,profile-service}
       TOKEN_SERVICE_CLIENT_ALLOWED_CLIENTS: ${TOKEN_SERVICE_CLIENT_ALLOWED_CLIENTS:-onboarding-svc}
       ONBOARDING_SVC_CLIENT_SECRET: ${ONBOARDING_SVC_CLIENT_SECRET:-test-onboarding-secret}
       AUTH_SESSION_ENCRYPTION_KEY: ${AUTH_SESSION_ENCRYPTION_KEY:-docker-only-change-me-32-chars!!}
@@ -23,8 +23,8 @@ services:
       MAIL_PORT: 1025
       MAIL_FROM: no-reply@token-svc.local
       MAIL_MOCK: "false"
-      EMAIL_CONFIRMATION_UI_URL: ${EMAIL_CONFIRMATION_UI_URL:-http://localhost:8000/?ojr=onboarding}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost,http://localhost:8088,http://127.0.0.1:8088,http://localhost:8000,http://127.0.0.1:8000}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost:8000}
+      EMAIL_CONFIRMATION_UI_URL: ${EMAIL_CONFIRMATION_UI_URL:-}
     volumes:
       - ${PWD}/db/accounts.db:/deployments/accounts.db
     depends_on:

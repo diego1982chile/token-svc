@@ -18,7 +18,7 @@ public interface UserService {
 
     RegistrationResponse registerUser(String email, String password);
 
-    void confirmEmail(String token);
+    User confirmEmail(String token);
 
     void resendEmailConfirmation(String email);
 

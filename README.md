@@ -53,6 +53,17 @@ http://localhost:8025
 
 The application sends SMTP traffic to `localhost:1025` in the dev profile. Tests still use `quarkus.mailer.mock=true`.
 
+Email confirmation links are sent to the frontend by default in Docker. If the
+frontend is running on a different local port, set `FRONTEND_PUBLIC_URL` when
+starting `token-svc`:
+
+```bash
+FRONTEND_PUBLIC_URL=http://localhost:8088 docker compose up --build
+```
+
+Use `EMAIL_CONFIRMATION_UI_URL` only when the full confirmation route must be
+overridden.
+
 ### 2. Running in Container (Production Profile)
 
 This mode runs the application using Docker, suitable for production or containerized environments.
